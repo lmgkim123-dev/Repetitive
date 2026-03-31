@@ -34,41 +34,27 @@ TASK_COLUMNS = [
     "제목", "상세 내용", "검토필요여부",
 ]
 
-# 제외해야 하는 내부 충진물/소모품
 _INTERNAL_EXCLUDE_RE = re.compile(
-    r"충진물|\bfiller\b|filter media|\bmedia\b replacement|촉매|\bcatalyst\b|adsorbent|desiccant|diesel\s*sand",
+    r"충진물|\bfiller\b|filter media|\bmedia\b replacement|adsorbent|desiccant|diesel\s*sand",
     re.I,
 )
 _SMALL_PART_EXCLUDE_RE = re.compile(
     r"\bbolt\b|\bnut\b|\bgasket\b|test\s*ring|collar\s*bolt|floating\s*head\s*bolt|\bf/h\s*bolt\b|keeper|pin|valve\s*wheel|stud|washer|anchor",
     re.I,
 )
-
-# Assembly로 보면 안 되는 객체들 (교체 문구가 있어도 Assembly 제외)
-_NON_ASSEMBLY_OBJECT_RE = re.compile(
-    r"pump\b|grating\b|flat\s*form|flat\s*platform|corrosion\s*probe(?:\s*assembly)?|probe\s*assembly|corrosion\s*probe|sliding\s*shoe|vortex\s*breaker|strainer|\bvalve\b",
-    re.I,
-)
-
-# 내부구성품으로 봐야 하는 객체들
 _INTERNAL_PART_RE = re.compile(
-    r"mesh|screen|hold\s*-?down|holdown|clip|saddle\s*clip|grid\s*clip|tray|packing|bubble\s*cap|baffle|weir\s*plate|demister|internal|seal\s*pan|entry\s*horn|distributor|collector|tray\s*cap|riser\s*pipe\s*hat|punch\s*plate|corrosion\s*probe\s*assembly|probe\s*assembly|corrosion\s*probe|heater\s*tube\s*support|radiant\s*tube\s*support|tube\s*casting\s*support|casting\s*support|tube\s*support|strainer|vortex\s*breaker|sliding\s*shoe|backing\s*device|grating|flat\s*form|flat\s*platform",
+    r"mesh|screen|hold\s*-?down|holdown|clip|saddle\s*clip|grid\s*clip|tray|packing|bubble\s*cap|baffle|weir\s*plate|demister|internal|seal\s*pan|entry\s*horn|distributor|collector|tray\s*cap|riser\s*pipe\s*hat|punch\s*plate|corrosion\s*probe\s*assembly|probe\s*assembly|corrosion\s*probe|heater\s*tube\s*support|radiant\s*tube\s*support|tube\s*casting\s*support|casting\s*support|tube\s*support|vortex\s*breaker|strainer|\bvalve\b",
     re.I,
 )
 _NOZZLE_RE = re.compile(r"nozzle|노즐|\bnzl\b|\belbow\b", re.I)
-
-# 진짜 Assembly core만 남김
 _ASSEMBLY_OBJ_RE = re.compile(
-    r"new\s*vessel|신규\s*용기|\bvessel\b|\bdrum\b|\bcolumn\b|\btower\b|\bbundle\b|tube\s*bundle|retube|shell\s*cover|floating\s*head|\bchannel\b|top\s*head|bottom\s*head|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|expansion\s*joint|bellows|\bsaddle\b(?!\s*clip)",
+    r"new\s*vessel|신규\s*용기|\bvessel\b|\bdrum\b|\bcolumn\b|\btower\b|\bbundle\b|retube|shell\s*cover|floating\s*head|\bchannel\b|top\s*head|bottom\s*head|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|expansion\s*joint|bellows|saddle(?!\s*clip)",
     re.I,
 )
-_ASSEMBLY_CONTEXT_RE = re.compile(
-    r"신규\s*제작|사전\s*제작|제작\s*후\s*교체|new|fabricat|retube|전체\s*교체|assy|assembly|신품\s*교체|pre\s*-?fabricat",
-    re.I,
-)
+_ASSEMBLY_CONTEXT_RE = re.compile(r"신규\s*제작|사전\s*제작|제작\s*후\s*교체|new|fabricat|retube|전체\s*교체|assy|assembly|신품\s*교체|pre\s*-?fabricat", re.I)
 _COATING_RE = re.compile(r"phenolic\s*epoxy|coating(?!\s*상태)|paint(?!\s*상태)|도장(?!상태)|보수도장|재도장|touch-?up", re.I)
 _BLAST_ONLY_RE = re.compile(r"sand\s*blasting|sandblasting", re.I)
-_OVERLAY_RE = re.compile(r"육성\s*용접|육성용접|overlay|hardfacing|build[- ]?up\s*weld", re.I)
+_OVERLAY_RE = re.compile(r"육성\s*용접|육성\s*용접|육성용접|overlay|hardfacing|build[- ]?up\s*weld|erni-?cr-?3|er-?nicr-?3|용접보수|보수용접|erni-?cr-?3|er-?nicr-?3|용접보수|보수용접", re.I)
 _WELD_REPAIR_RE = re.compile(
     r"seal\s*welding|seal-?weld|weld\s*repair|repair\s*weld(?:ing)?|용접보수|보수용접|재\s*용접|재용접|결함\s*제거\s*후\s*용접|선형\s*결함\s*제거\s*후\s*용접|grinding\s*후\s*용접|용접\s*실시|육성\s*용접|용접\s*후\s*나사산|용접\s*후\s*.*가공|용접\s*후\s*.*탐상",
     re.I,
@@ -83,18 +69,14 @@ _REPAIR_ACTION_RE = re.compile(
 )
 _REPLACE_RE = re.compile(r"교체|replace|replaced|신규\s*제작|신규\s*교체|제작\s*후\s*교체|fabricated?.*replace|retube|교체\s*설치함|교체\s*완료", re.I)
 _ACTION_DONE_RE = re.compile(
-    r"교체함|교체\s*설치함|교체\s*하였음|교체됨|신규\s*교체|신규\s*제작|제작\s*후\s*교체|설치함|설치\s*완료|실시함|작업함|작업\s*실시|보수\s*완료|용접\s*실시|repair(ed)?|replace(d)?|fabricated|coating\s*실시|도장\s*실시|완료함",
+    r"교체함|교체\s*설치함|교체\s*하였음|교체됨|신규\s*교체|신규\s*제작|제작\s*후\s*교체|설치함|설치\s*완료|실시함|작업함|작업\s*실시|보수\s*완료|용접\s*실시|blind\s*처리|by-?pass\s*시킴|repair(ed)?|replace(d)?|fabricated|coating\s*실시|도장\s*실시|완료함",
     re.I,
 )
 _AIR_COOLER_PLUG_SERVICE_RE = re.compile(r"air\s*cooler\s*plug|a/?c\s*plug|plug\b", re.I)
 _AIR_COOLER_PLUG_NONREPAIR_RE = re.compile(r"분해|조립|해체|탈거|재조립|opening|closing|open|close", re.I)
 _RECOMMEND_ONLY_RE = re.compile(r"요망|요함|필요|권고|차기\s*TA|다음\s*TA|recommend|검토|적용\s*검토|교체할\s*경우|실시하여야|실시\s*하여야|하여야\s*겠음|해야\s*겠음", re.I)
-_INSPECTION_ONLY_RE = re.compile(r"\bMT\b|\bPT\b|\bUT\b|검사|점검|확인|power\s*brush|power\s*brushing|세척|clean|청소|수압\s*테스트|RT/?수압\s*테스트|액체침투탐상|침투탐상|자분탐상|IRIS", re.I)
+_INSPECTION_ONLY_RE = re.compile(r"\bMT\b|\bPT\b|\bUT\b|검사|점검|확인|power\s*brush|power\s*brushing|세척|clean|청소|수압\s*테스트|RT/?수압\s*테스트|액체침투탐상|침투탐상|자분탐상", re.I)
 _HISTORY_PAREN_RE = re.compile(r"\([^)]*(20\d{2})년[^)]*\)", re.I)
-_PAST_YEAR_ACTION_PHRASE_RE = re.compile(
-    r"(?:19|20)\d{2}(?:년|년도|\s*TA)?\s*(?:에|의|엔|에서는)?\s*[^.\n]*?(?:bundle|번들|nozzle|노즐|tray|packing|strainer|tube\s*bundle|retube|교체|replace|신규\s*제작|제작\s*후\s*교체)[^.\n]*?(?:하였으나|했으나|이었으나|였으나|되어\s*있었으나|되었으나)",
-    re.I,
-)
 _HEADER_TRASH_RE = re.compile(
     r"검사사항\s*\(초기/상세\)|구분\s*Tube\s*Shell|초기\s*상태|상세\s*검사|표면\s*상태|도장\s*상태|^Line\s*no\.?$|^Nozzle\s*No\.?$",
     re.I,
@@ -103,25 +85,14 @@ _BULLET_SPLIT_RE = re.compile(
     r"(?:\n+|\\n+|\s+(?=\(\d+\))|\s+(?=-\s)|\s+(?=<[^>]+>)|(?<=[다음요권검])\s+(?=차기\s*TA|다음\s*TA|권고|요망|요함|필요|검토))"
 )
 
-_SERVICE_TAIL_RE = re.compile(
-    r"(?:Desalted\s+Crude|Crude|Naphtha|Kerosene|Diesel|LSR|HSR|LGO|HGO|RC\s*Ex\.?|Feed/Bottom\s*Ex\.?|Feed\s*Ex\.?|Bottom\s*Ex\.?)$",
-    re.I,
-)
-
-
-def _normalize_text(text: str) -> str:
-    return re.sub(r"\s+", " ", str(text or "")).strip()
-
 
 def _has_explicit_done(text: str) -> bool:
     t = _normalize_text(text)
     if not t:
         return False
-    return bool(_ACTION_DONE_RE.search(t) or re.search(
-        r"bundle\s*사전\s*신규\s*제작\s*및\s*교체|bundle\s*사전\s*제작\s*및\s*교체|신규\s*bundle\s*로\s*교체함|신규\s*bundle\s*제작\s*되어\s*교체|신규\s*용기\s*제작\s*후\s*교체|제작\s*후\s*교체\s*실시",
-        t,
-        re.I,
-    ))
+    return bool(re.search(
+        r"교체함|교체\s*하였음|교체\s*설치함|교체\s*완료|교체\s*실시|설치함|설치\s*완료|실시함|완료함|보수\s*완료|용접보수|보수용접|재\s*용접|재용접|육성\s*용접|overlay|hardfacing|weld\s*repair|repair\s*weld|replace(d)?|retube|bundle\s*사전\s*신규\s*제작\s*및\s*교체|bundle\s*사전\s*제작\s*및\s*교체|신규\s*bundle\s*로\s*교체함|신규\s*bundle\s*제작\s*되어\s*교체|신규\s*용기\s*제작\s*후\s*교체|제작\s*후\s*교체\s*실시"
+        , t, re.I))
 
 
 def _is_negative_or_empty(text: str) -> bool:
@@ -140,6 +111,10 @@ def _looks_like_recommendation(text: str) -> bool:
         if re.search(r"(교체|보수|설치|제작).*(필요|요망|검토|예정)", t, re.I):
             return True
     return False
+
+
+def _normalize_text(text: str) -> str:
+    return re.sub(r"\s+", " ", str(text or "")).strip()
 
 
 def _unique_keep_order(items: Iterable[str]) -> List[str]:
@@ -167,46 +142,16 @@ def _strip_other_year_history(text: str, report_year: int) -> str:
     return _normalize_text(t)
 
 
-def _remove_past_year_action_phrases(text: str, report_year: int) -> str:
-    t = _normalize_text(text)
-    if not t:
-        return t
-
-    def repl(m):
-        frag = m.group(0)
-        years = [int(y) for y in re.findall(r"((?:19|20)\d{2})", frag)]
-        if years and all(y != int(report_year) for y in years):
-            return " "
-        return frag
-
-    t = _PAST_YEAR_ACTION_PHRASE_RE.sub(repl, t)
-    t = re.sub(r"^(?:또한\s*)?기존\s*", "", t)
-    t = re.sub(r"\s+", " ", t).strip(" ,;:/")
-    return t
-
-
 def _clean_clause_text(text: str) -> str:
     t = str(text or "")
     t = re.sub(r"\\n", " ", t)
     t = re.sub(r"<[^>]+>", " ", t)
     t = _HEADER_TRASH_RE.sub(" ", t)
+    t = re.sub(r"\b[0-9]{2}[A-Z]-\d{3,4}[A-Z]?\b", " ", t)
+    t = re.sub(r"\b(?:Crude Column|HK Stripper|Stabilizer|Desalter|Exchanger|Heater|Receiver|Dryer|Drum)\b", lambda m: m.group(0) if len(m.group(0).split()) > 2 else " ", t, flags=re.I)
     t = re.sub(r"\s+/\s+", ". ", t)
     t = re.sub(r"\s+", " ", t)
     return t.strip(" -/,:;")
-
-
-def _post_clean_action_text(text: str) -> str:
-    t = _normalize_text(text)
-    if not t:
-        return t
-    # recommendation '없음'이나 표의 옆 셀 잔재 제거
-    t = re.sub(r"\s*(?:없음|해당없음|none|n/?a)\.?$", "", t, flags=re.I)
-    t = re.sub(r"\s+[-/]?\s*(?:없음|해당없음|none|n/?a)\.?$", "", t, flags=re.I)
-    # 서비스명/설비명 꼬리표 제거
-    t = _SERVICE_TAIL_RE.sub("", t).strip(" -/:;,.[]()")
-    # 중복 구두점/공백 정리
-    t = re.sub(r"\s+", " ", t).strip()
-    return t
 
 
 def _split_clauses(text: str) -> List[str]:
@@ -218,17 +163,18 @@ def _split_clauses(text: str) -> List[str]:
     first_pass = [p for p in _BULLET_SPLIT_RE.split(raw) if _normalize_text(p)]
     parts: List[str] = []
     for part in first_pass:
-        # recommendation 시작부나 번호 bullet만 우선 분리하고, 본문은 최대한 길게 유지
-        sub_parts = re.split(r"(?<=[\.!?다함음])\s+(?=(?:\(?\d+\)|차기\s*TA|다음\s*TA|권고|검토))", part)
+        sub_parts = re.split(r"(?<=[\.!?다함음요])\s+(?=(?:\(?\d+\)|[A-Z#0-9\"“]|Nozzle|Tray|Shell|Top|Bottom|내부|외부|차기\s*TA|다음\s*TA|권고|검토))", part)
         for sub in sub_parts:
             sub = _normalize_text(sub)
-            if sub:
-                parts.append(sub)
-    return parts
+            if not sub:
+                continue
+            parts.append(sub)
+    return [p for p in parts if _normalize_text(p)]
 
 
 def _is_recommendation_only(text: str) -> bool:
-    return bool(text and _looks_like_recommendation(text))
+    t = _normalize_text(text)
+    return bool(t and _looks_like_recommendation(t))
 
 
 def _is_historical_only(text: str, report_year: int) -> bool:
@@ -254,9 +200,11 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
         return []
     if _HEADER_TRASH_RE.search(combined) and not (_REPLACE_RE.search(combined) or _SIMPLE_REPAIR_RE.search(combined) or _COATING_RE.search(combined) or _WELD_REPAIR_RE.search(combined)):
         return []
+    if _SMALL_PART_EXCLUDE_RE.search(combined) and not _NOZZLE_RE.search(combined):
+        return []
     if _BLAST_ONLY_RE.search(combined) and not _COATING_RE.search(combined):
         return []
-    if _INSPECTION_ONLY_RE.search(combined) and not (_REPLACE_RE.search(combined) or _COATING_RE.search(combined) or _OVERLAY_RE.search(combined) or _SIMPLE_REPAIR_RE.search(combined) or _WELD_REPAIR_RE.search(combined)):
+    if _INSPECTION_ONLY_RE.search(combined) and not (_REPLACE_RE.search(combined) or _COATING_RE.search(combined) or _OVERLAY_RE.search(combined) or _SIMPLE_REPAIR_RE.search(combined)):
         return []
 
     has_replace = bool(_REPLACE_RE.search(combined)) or "replace" in action_type.lower()
@@ -264,7 +212,6 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
     has_nozzle = bool(_NOZZLE_RE.search(combined))
     has_assembly_obj = bool(_ASSEMBLY_OBJ_RE.search(combined))
     has_assembly_ctx = bool(_ASSEMBLY_CONTEXT_RE.search(combined))
-    has_non_assembly = bool(_NON_ASSEMBLY_OBJECT_RE.search(combined))
     has_small_part = bool(_SMALL_PART_EXCLUDE_RE.search(combined))
     has_coating = bool(_COATING_RE.search(combined)) or "coating" in action_type.lower()
     has_overlay = bool(_OVERLAY_RE.search(combined))
@@ -272,10 +219,11 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
     has_simple = bool(_SIMPLE_REPAIR_RE.search(combined)) or any(x in action_type.lower() for x in ["temporary_fix", "plugging"])
     has_done = _has_explicit_done(combined)
 
+    # 도장은 교체/보수 문장이 섞이지 않은 경우에만 단독 분류
     if has_coating and not has_replace and not has_simple and not has_overlay:
         return ["도장"]
 
-    # 교체는 object-first로 판정
+    # 교체는 nozzle > internal > assembly 우선순위로 단일 분류
     if has_replace:
         if _looks_like_recommendation(combined) and not has_done:
             return []
@@ -285,14 +233,14 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
             if re.search(r"mint|ont|pitting|부식|감육|두께감소", combined, re.I) and not re.search(r"신규|제작|설치|제거\s*후|size-?up|기존", combined, re.I):
                 return []
             return ["Nozzle 교체"]
-        if has_non_assembly or has_internal:
-            if has_small_part and not re.search(r"corrosion\s*probe|sliding\s*shoe|grating|backing\s*device|vortex\s*breaker|strainer", combined, re.I):
-                return []
+        if has_internal and not has_small_part:
             if not has_done and not has_assembly_ctx:
                 return []
             return ["단순 내부 구성품 교체"]
-        if (has_assembly_obj or has_assembly_ctx) and not has_small_part:
+        if (has_assembly_obj or has_assembly_ctx) and not has_small_part and not has_internal and not has_nozzle:
             if not has_done and not has_assembly_ctx:
+                return []
+            if _looks_like_recommendation(combined) and not has_done:
                 return []
             if re.search(r"설계두께|최소허용두께|상태|pitting|general corrosion|부식", combined, re.I) and not has_done:
                 return []
@@ -301,7 +249,7 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
     if has_coating:
         return ["도장"]
     if has_overlay or has_weld_repair:
-        if not (has_done or re.search(r"육성\s*용접|육성용접|overlay|seal\s*welding|seal-?weld|재\s*용접|재용접|용접보수|보수용접|weld\s*repair|repair\s*weld", combined, re.I)):
+        if not (has_done or re.search(r"육성용접|overlay|seal\s*welding|seal-?weld|재\s*용접|재용접|용접보수|보수용접|weld\s*repair|repair\s*weld", combined, re.I)):
             return []
         return ["육성용접"]
     if has_simple:
@@ -331,10 +279,8 @@ def _extract_action_items(event) -> List[dict]:
     loc = _normalize_text(getattr(event, "finding_location", "") or "")
     for raw in (getattr(event, "action_sentences", []) or []):
         text = _strip_other_year_history(raw, year)
-        text = _remove_past_year_action_phrases(text, year)
         for clause in _split_clauses(text):
             clause = _clean_clause_text(clause)
-            clause = _post_clean_action_text(clause)
             clause = _normalize_text(clause)
             if not clause or _is_negative_or_empty(clause):
                 continue
@@ -435,21 +381,20 @@ def _category_row_is_valid(category: str, items: List[dict]) -> bool:
     if category == "Assembly 교체":
         return bool(
             re.search(
-                r"\bbundle\b|tube\s*bundle|new\s*vessel|신규\s*용기|retube|shell\s*cover|floating\s*head|\bchannel\b|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|expansion\s*joint|bellows",
+                r"bundle|tube\s*bundle|new\s*vessel|신규\s*용기|retube|shell\s*cover|floating\s*head|channel\b|backing\s*device|\bassembly\b|\bassy\b|duct|damper|vortex\s*breaker",
                 texts,
                 re.I,
             )
-            and not _NON_ASSEMBLY_OBJECT_RE.search(texts)
             and (_ACTION_DONE_RE.search(texts) or _REPLACE_RE.search(texts))
         )
     if category == "Nozzle 교체":
         return bool(re.search(r"nozzle|노즐|\bnzl\b|\belbow\b", texts, re.I))
     if category == "단순 내부 구성품 교체":
-        return bool(_INTERNAL_PART_RE.search(texts) or _NON_ASSEMBLY_OBJECT_RE.search(texts))
+        return bool(_INTERNAL_PART_RE.search(texts))
     if category == "도장":
         return bool(_COATING_RE.search(texts))
     if category == "육성용접":
-        return bool(_OVERLAY_RE.search(texts) or _WELD_REPAIR_RE.search(texts))
+        return bool(_OVERLAY_RE.search(texts))
     if category == "단순 보수":
         return bool(_REPAIR_ACTION_RE.search(texts) or (_ACTION_DONE_RE.search(texts) and _SIMPLE_REPAIR_RE.search(texts)))
     return True
@@ -575,24 +520,23 @@ def build_equipment_summary_dataframe(all_events: List) -> pd.DataFrame:
         rows.append(row)
         row_no += 1
 
-    return pd.DataFrame(rows, columns=TASK_COLUMNS)
+    if not rows:
+        return pd.DataFrame(columns=TASK_COLUMNS)
+
+    df = pd.DataFrame(rows, columns=TASK_COLUMNS)
+    order_map = {name: idx for idx, name in enumerate(CATEGORY_ORDER)}
+    df["_ord"] = df["발췌 Category"].map(order_map).fillna(999)
+    df = df.sort_values(["발생년도수", "Equipment No", "_ord"], ascending=[False, True, True]).drop(columns=["_ord"]).reset_index(drop=True)
+    df["NO"] = range(1, len(df) + 1)
+    return df
 
 
-def build_category_extract_dataframe(all_events: List) -> pd.DataFrame:
-    rows: List[dict] = []
-    no = 1
-    for event in all_events:
-        eq_no = _normalize_text(getattr(event, "equipment_no", ""))
-        eq_name = _normalize_text(getattr(event, "equipment_name", ""))
-        for item in _extract_action_items(event):
-            rows.append({
-                "NO": no,
-                "Equipment No": eq_no,
-                "설비명": eq_name,
-                "발췌 Category": item["category"],
-                "반복부위": item["location"],
-                "발생년도": item["year"],
-                "TA 조치사항": item["text"],
-            })
-            no += 1
-    return pd.DataFrame(rows)
+def build_category_extract_dataframe(task_df: pd.DataFrame) -> pd.DataFrame:
+    if task_df is None or task_df.empty:
+        return pd.DataFrame(columns=TASK_COLUMNS)
+    out = task_df.copy()
+    order_map = {name: idx for idx, name in enumerate(CATEGORY_ORDER)}
+    out["_ord"] = out["발췌 Category"].map(order_map).fillna(999)
+    out = out.sort_values(["_ord", "Equipment No", "발생년도수"], ascending=[True, True, False]).drop(columns=["_ord"]).reset_index(drop=True)
+    out["NO"] = range(1, len(out) + 1)
+    return out[TASK_COLUMNS].copy()
