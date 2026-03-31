@@ -18,7 +18,7 @@ from .schemas import MaintenanceEvent
 
 ACTION_CLUSTERS = {
     "weld_repair": [
-        "육성용접", "overlay", "hardfacing", "재용접", "용접보수", "용접 보수", "보수용접",
+        "육성용접", "육성 용접", "overlay", "hardfacing", "재용접", "용접보수", "용접 보수", "보수용접", "ER-NiCr3", "ErNiCr-3",
         "weld repair", "repair welding", "seal welding", "seal-welding",
         "결함 제거 후 용접", "선형 결함 제거 후 용접", "grinding 후 용접",
     ],
@@ -33,10 +33,10 @@ ACTION_CLUSTERS = {
     "plugging": ["plugging", "plug", "tube plug", "막음", "unplugging"],
     "temporary_fix": ["임시조치", "box-up", "compound sealing", "clamp", "patch"],
     "structural_repair": [
-        "packing 교체", "tray 교체", "internal 교체", "distributor",
+        "packing 교체", "tray 교체", "internal 교체", "distributor", "panel coil 교체", "panel coil", "coil 교체", "inner screen 교체", "outer screen 교체", "beam support 교체", "support channel 교체", "grating 교체", "panel coil 교체", "panel coil", "coil 교체", "inner screen 교체", "outer screen 교체", "beam support 교체", "support channel 교체", "grating 교체",
         "bubble cap", "baffle", "weir plate", "punch plate", "mesh 교체",
         "screen mesh 교체", "clip 교체", "entry horn", "tray cap", "riser pipe hat",
-        "tube support", "support 교체",
+        "tube support", "support 교체", "panel coil 교체", "panel coil", "coil 교체", "inner screen 교체", "outer screen 교체", "beam support 교체", "support channel 교체", "grating 교체", "panel coil 교체", "panel coil", "coil 교체", "inner screen 교체", "outer screen 교체", "beam support 교체", "support channel 교체", "grating 교체",
     ],
 }
 
@@ -56,8 +56,8 @@ LOCATION_PATTERNS = {
     "shell_upper": r"shell\s*(상부|upper)|상부\s*shell",
     "shell_lower": r"shell\s*(하부|bottom|lower)|하부\s*shell|bottom\s*shell",
     "nozzle": r"nozzle|노즐",
-    "internal_tray": r"tray|chimney\s*tray|bubble\s*cap|downcomer|weir\s*plate|screen|mesh|clip|tray\s*cap",
-    "internal_packing": r"packing|distributor|collector|baffle|demister|internal|entry\s*horn|riser\s*pipe\s*hat|punch\s*plate|support",
+    "internal_tray": r"tray|chimney\s*tray|bubble\s*cap|downcomer|weir\s*plate|screen|inner\s*screen|outer\s*screen|mesh|clip|tray\s*cap|grating|beam\s*support|support\s*channel",
+    "internal_packing": r"packing|distributor|collector|baffle|demister|internal|entry\s*horn|riser\s*pipe\s*hat|punch\s*plate|panel\s*coil|new\s*coil|old\s*coil|coil\b|support|beam\s*support|support\s*channel",
     "entry_horn": r"entry\s*horn|wear\s*pad",
     "bundle_tube": r"bundle|tube\s*sheet|tube|retube|shell\s*cover|floating\s*head|channel",
     "lining": r"lining|clad|strip\s*lining|concrete\s*lining",
@@ -101,15 +101,15 @@ _BUNDLE_PERFORMED_RE = re.compile(
     r"bundle\s*사전\s*신규\s*제작\s*및\s*교체|bundle\s*사전\s*제작\s*및\s*교체|신규\s*bundle\s*제작후\s*교체|신규\s*bundle\s*로\s*교체함|신규\s*bundle\s*제작\s*되어\s*교체하였|신규\s*bundle\s*제작\s*후\s*교체|신규\s*입고된\s*bundle|bundle\s*교체함|retube|제작\s*후\s*교체",
     re.I,
 )
-_INTERNAL_EXCLUDE_RE = re.compile(r"충진물|\bfiller\b|filter\s*media|촉매|\bcatalyst\b|adsorbent|desiccant|diesel\s*sand", re.I)
+_INTERNAL_EXCLUDE_RE = re.compile(r"충진물|\bfiller\b|filter\s*media|adsorbent|desiccant|diesel\s*sand", re.I)
 _SMALL_PART_ONLY_RE = re.compile(r"\bbolt\b|\bnut\b|\bgasket\b|washer|stud|pin|keeper", re.I)
 _NOZZLE_KEYWORD_RE = re.compile(r"nozzle|노즐|\bnzl\b|\belbow\b", re.I)
 _INTERNAL_OBJECT_RE = re.compile(
-    r"tray|chimney\s*tray|bubble\s*cap|downcomer|weir\s*plate|screen|mesh|clip|packing|distributor|collector|baffle|demister|internal|entry\s*horn|riser\s*pipe\s*hat|punch\s*plate|tube\s*support|support|corrosion\s*probe\s*assembly|probe\s*assembly|corrosion\s*probe|vortex\s*breaker|strainer|\bvalve\b",
+    r"tray|chimney\s*tray|bubble\s*cap|downcomer|weir\s*plate|screen|inner\s*screen|outer\s*screen|mesh|clip|support\s*clip|packing|distributor|collector|baffle|demister|internal|entry\s*horn|riser\s*pipe\s*hat|punch\s*plate|panel\s*coil|new\s*coil|old\s*coil|coil\b|beam\s*support|support\s*channel|tube\s*support|corrosion\s*probe\s*assembly|probe\s*assembly|corrosion\s*probe|grating|flat\s*form|\bvalve\b",
     re.I,
 )
 _ASSEMBLY_OBJECT_RE = re.compile(
-    r"bundle|tube\s*bundle|retube|new\s*vessel|신규\s*용기|vessel|shell\s*cover|floating\s*head|channel\b|backing\s*device|\bassembly\b|\bassy\b|duct|damper|saddle(?!\s*clip)|radiant\s*tube\s*support|support",
+    r"bundle|tube\s*bundle|retube|new\s*vessel|신규\s*용기|\bvessel\b|shell\s*cover|floating\s*head|\bchannel\b|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|expansion\s*joint|bellows|saddle(?!\s*clip)",
     re.I,
 )
 _INSTALL_OR_REPLACE_RE = re.compile(r"교체|replace|설치|install|신규\s*제작|신규\s*교체|제작\s*후\s*교체|fabricat|retube", re.I)
@@ -218,9 +218,9 @@ def is_recommendation_sentence(text: str) -> bool:
     return bool(_RECOM_RE.search(t) and not _DONE_RE.search(t))
 
 
-def _merge_sentences(sentences: List[str], max_length: int = 1200) -> str:
-    merged = " / ".join(s.strip() for s in sentences if s and s.strip() and str(s).strip().lower() not in {"없음", "없음.", "none", "n/a"})
-    return merged[:max_length] if max_length and len(merged) > max_length else merged
+def _merge_sentences(sentences: List[str], max_length: int = 320) -> str:
+    merged = " / ".join(s.strip() for s in sentences if s.strip())
+    return merged[:max_length]
 
 
 _VERIFIED_EVENT_ACTION_OVERRIDES = {
@@ -375,12 +375,9 @@ def _row_records(year_group: pd.DataFrame) -> List[dict]:
         prev = merged[-1]
         prev_s = prev["text"]
         should_merge = (
-            s.strip().lower() not in {"없음", "없음.", "none", "n/a"}
-            and (
-                (len(s) <= 40 and not re.search(r"\(\d+\)|신규\s*제작|교체함|교체\s*설치함|실시함|도장\s*실시|용접\s*실시", s, re.I))
-                or _CONTINUATION_START_RE.search(s)
-                or _FRAGMENT_END_RE.search(prev_s)
-            )
+            (len(s) <= 40 and not re.search(r"\(\d+\)|신규\s*제작|교체함|교체\s*설치함|실시함|도장\s*실시|용접\s*실시", s, re.I))
+            or _CONTINUATION_START_RE.search(s)
+            or _FRAGMENT_END_RE.search(prev_s)
         )
         if should_merge:
             prev["text"] = f"{prev_s} {s}".strip()
@@ -430,8 +427,6 @@ def build_events_for_equipment(equipment_no: str, equipment_name: str, rows: pd.
             if meas:
                 measurement_texts.append(meas)
 
-            if sentence.strip().lower() in {"없음", "없음.", "none", "n/a"}:
-                continue
             if is_recommendation_sentence(sentence) and not is_action_sentence(sentence, raw_action_tags):
                 recommendations.append(sentence)
             elif is_action_sentence(sentence, raw_action_tags):
