@@ -75,6 +75,7 @@ _ACTION_DONE_RE = re.compile(
 _AIR_COOLER_PLUG_SERVICE_RE = re.compile(r"air\s*cooler\s*plug|a/?c\s*plug|plug\b", re.I)
 _AIR_COOLER_PLUG_NONREPAIR_RE = re.compile(r"분해|조립|해체|탈거|재조립|opening|closing|open|close", re.I)
 _RECOMMEND_ONLY_RE = re.compile(r"요망|요함|필요|권고|차기\s*TA|다음\s*TA|recommend|검토|적용\s*검토|교체할\s*경우|실시하여야|실시\s*하여야|하여야\s*겠음|해야\s*겠음", re.I)
+_TOOLING_RE = re.compile(r"유압\s*토크\s*렌치|토크\s*렌치|hydraulic\s*torque\s*wrench|torque\s*wrench", re.I)
 _INSPECTION_ONLY_RE = re.compile(r"\bMT\b|\bPT\b|\bUT\b|검사|점검|확인|power\s*brush|power\s*brushing|세척|clean|청소|수압\s*테스트|RT/?수압\s*테스트|액체침투탐상|침투탐상|자분탐상", re.I)
 _HISTORY_PAREN_RE = re.compile(r"\([^)]*(20\d{2})년[^)]*\)", re.I)
 _HEADER_TRASH_RE = re.compile(
@@ -213,11 +214,18 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
     has_assembly_obj = bool(_ASSEMBLY_OBJ_RE.search(combined))
     has_assembly_ctx = bool(_ASSEMBLY_CONTEXT_RE.search(combined))
     has_small_part = bool(_SMALL_PART_EXCLUDE_RE.search(combined))
+    has_tooling = bool(_TOOLING_RE.search(combined))
     has_coating = bool(_COATING_RE.search(combined)) or "coating" in action_type.lower()
     has_overlay = bool(_OVERLAY_RE.search(combined))
     has_weld_repair = bool(_WELD_REPAIR_RE.search(combined)) or "weld_repair" in action_type.lower()
     has_simple = bool(_SIMPLE_REPAIR_RE.search(combined)) or any(x in action_type.lower() for x in ["temporary_fix", "plugging"])
     has_done = _has_explicit_done(combined)
+
+    # 유압토크렌치/토크렌치 교체는 설비 본체 Assembly 교체가 아니라 단순 보수로 본다.
+    if has_tooling:
+        if has_replace or has_simple or has_done:
+            return ["단순 보수"]
+        return []
 
     # 도장은 교체/보수 문장이 섞이지 않은 경우에만 단독 분류
     if has_coating and not has_replace and not has_simple and not has_overlay:
@@ -379,6 +387,8 @@ def _category_row_is_valid(category: str, items: List[dict]) -> bool:
     if _RECOMMEND_ONLY_RE.search(texts) and not _ACTION_DONE_RE.search(texts):
         return False
     if category == "Assembly 교체":
+        if _TOOLING_RE.search(texts):
+            return False
         return bool(
             re.search(
                 r"bundle|tube\s*bundle|new\s*vessel|신규\s*용기|retube|shell\s*cover|floating\s*head|channel\b|backing\s*device|\bassembly\b|\bassy\b|duct|damper|vortex\s*breaker",
@@ -396,7 +406,11 @@ def _category_row_is_valid(category: str, items: List[dict]) -> bool:
     if category == "육성용접":
         return bool(_OVERLAY_RE.search(texts))
     if category == "단순 보수":
-        return bool(_REPAIR_ACTION_RE.search(texts) or (_ACTION_DONE_RE.search(texts) and _SIMPLE_REPAIR_RE.search(texts)))
+        return bool(
+            _TOOLING_RE.search(texts)
+            or _REPAIR_ACTION_RE.search(texts)
+            or (_ACTION_DONE_RE.search(texts) and (_SIMPLE_REPAIR_RE.search(texts) or _TOOLING_RE.search(texts)))
+        )
     return True
 
 
