@@ -51,25 +51,25 @@ _ASSEMBLY_OBJ_RE = re.compile(
     r"new\s*vessel|신규\s*용기|\bvessel\b|\bdrum\b|\bcolumn\b|\btower\b|\bbundle\b|retube|shell\s*cover|floating\s*head|\bchannel\b|top\s*head|bottom\s*head|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|expansion\s*joint|bellows|saddle(?!\s*clip)",
     re.I,
 )
-_ASSEMBLY_CONTEXT_RE = re.compile(r"신규\s*제작|사전\s*제작|제작\s*후\s*교체|new|fabricat|retube|전체\s*교체|assy|assembly|신품\s*교체|pre\s*-?fabricat", re.I)
+_ASSEMBLY_CONTEXT_RE = re.compile(r"신규\s*제작|사전\s*제작|제작\s*후\s*교체|new|fabricat|retube|retubing|전체\s*교체|assy|assembly|신품\s*교체|pre\s*-?fabricat|bellows|sleeve", re.I)
 _COATING_RE = re.compile(r"phenolic\s*epoxy|coating(?!\s*상태)|paint(?!\s*상태)|도장(?!상태)|보수도장|재도장|touch-?up", re.I)
 _BLAST_ONLY_RE = re.compile(r"sand\s*blasting|sandblasting", re.I)
 _OVERLAY_RE = re.compile(r"육성\s*용접|육성\s*용접|육성용접|overlay|hardfacing|build[- ]?up\s*weld|erni-?cr-?3|er-?nicr-?3|용접보수|보수용접|erni-?cr-?3|er-?nicr-?3|용접보수|보수용접", re.I)
 _WELD_REPAIR_RE = re.compile(
-    r"seal\s*welding|seal-?weld|weld\s*repair|repair\s*weld(?:ing)?|용접보수|보수용접|재\s*용접|재용접|결함\s*제거\s*후\s*용접|선형\s*결함\s*제거\s*후\s*용접|grinding\s*후\s*용접|용접\s*실시|육성\s*용접|용접\s*후\s*나사산|용접\s*후\s*.*가공|용접\s*후\s*.*탐상",
+    r"seal\s*welding|seal-?weld|stitch\s*welding|weld\s*repair|repair\s*weld(?:ing)?|용접보수|보수용접|재\s*용접|재용접|결함\s*제거\s*후\s*용접|선형\s*결함\s*제거\s*후\s*용접|grinding\s*후\s*용접|용접\s*실시|육성\s*용접|용접\s*후\s*나사산|용접\s*후\s*.*가공|용접\s*후\s*.*탐상",
     re.I,
 )
 _SIMPLE_REPAIR_RE = re.compile(
-    r"보수|repair|grinding|결함\s*제거|defect\s*remov|patch|보강|임시조치|box-?up|compound\s*sealing|lining\s*repair|보수\s*완료|plug\b|plugging|unplugging|stop\s*hole|막음\s*작업|막음\s*용접|복원\s*후\s*조립",
+    r"보수|repair|grinding|결함\s*제거|defect\s*remov|patch|보강|재시공|시공|임시조치|box-?up|compound\s*sealing|lining\s*repair|보수\s*완료|plug\b|plugging|unplugging|stop\s*hole|막음\s*작업|막음\s*용접|복원\s*후\s*조립",
     re.I,
 )
 _REPAIR_ACTION_RE = re.compile(
-    r"grinding|결함\s*제거|defect\s*remov|patch-?up|patch|box-?up|compound\s*sealing|보수\s*완료|plug\b|plugging|unplugging|stop\s*hole|막음\s*작업|막음\s*용접|repair(ed)?|보수\s*작업\s*실시",
+    r"grinding|결함\s*제거|defect\s*remov|patch-?up|patch|box-?up|compound\s*sealing|보수\s*완료|보강함|보강\s*실시|재시공|시공하였음|plug\b|plugging|unplugging|stop\s*hole|막음\s*작업|막음\s*용접|repair(ed)?|보수\s*작업\s*실시",
     re.I,
 )
-_REPLACE_RE = re.compile(r"교체|replace|replaced|신규\s*제작|신규\s*교체|제작\s*후\s*교체|fabricated?.*replace|retube|교체\s*설치함|교체\s*완료", re.I)
+_REPLACE_RE = re.compile(r"교체|replace|replaced|신규\s*제작|신규\s*교체|제작\s*후\s*교체|fabricated?.*replace|retube|retubing|교체\s*설치함|교체\s*완료|교체\s*완료함|교체\s*완료하였음", re.I)
 _ACTION_DONE_RE = re.compile(
-    r"교체함|교체\s*설치함|교체\s*하였음|교체됨|신규\s*교체|신규\s*제작|제작\s*후\s*교체|설치함|설치\s*완료|실시함|작업함|작업\s*실시|보수\s*완료|용접\s*실시|blind\s*처리|by-?pass\s*시킴|repair(ed)?|replace(d)?|fabricated|coating\s*실시|도장\s*실시|완료함",
+    r"교체함|교체\s*설치함|교체\s*하였음|교체\s*완료함|교체\s*완료하였음|교체됨|신규\s*교체|신규\s*제작|제작\s*후\s*교체|설치함|설치\s*완료|실시함|실시하였음|실시\s*완료|작업함|작업\s*실시|보수\s*완료|보강함|보강\s*실시|용접\s*실시|blind\s*처리|by-?pass\s*시킴|재시공|시공하였음|repair(ed)?|replace(d)?|fabricated|coating\s*실시|도장\s*실시|완료함",
     re.I,
 )
 _AIR_COOLER_PLUG_SERVICE_RE = re.compile(r"air\s*cooler\s*plug|a/?c\s*plug|plug\b", re.I)

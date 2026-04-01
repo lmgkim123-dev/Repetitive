@@ -20,11 +20,11 @@ ACTION_CLUSTERS = {
     "weld_repair": [
         "육성용접", "육성 용접", "overlay", "hardfacing", "재용접", "용접보수", "용접 보수", "보수용접", "ER-NiCr3", "ErNiCr-3",
         "weld repair", "repair welding", "seal welding", "seal-welding",
-        "결함 제거 후 용접", "선형 결함 제거 후 용접", "grinding 후 용접",
+        "결함 제거 후 용접", "선형 결함 제거 후 용접", "grinding 후 용접", "stitch welding",
     ],
     "replace": [
         "교체", "replace", "신규 제작", "신규교체", "신규 용기", "제작 후 교체",
-        "new vessel", "retube", "spool 교체", "nozzle 교체", "bundle 교체", "신규 교체 실시",
+        "new vessel", "retube", "retubing", "spool 교체", "nozzle 교체", "bundle 교체", "신규 교체 실시", "bellows", "sleeve",
     ],
     "coating_repair": [
         "도장보수", "보수도장", "재도장", "paint repair", "coating repair",
@@ -91,7 +91,7 @@ _HEADER_LIKE_RE = re.compile(r"^[A-Z0-9\-() /\"”“.#]+$")
 _CONTINUATION_START_RE = re.compile(r"^(?:및|후|또는|발견되어|하여|하였으며|하고|실시|제거|교체|보수|검사|세척|또한|관련하여|차단을\s*위해|위하여)", re.I)
 _FRAGMENT_END_RE = re.compile(r"(?:Nozzle\s*No\.?|Line\s*No\.?|구분|상부|하부|위하여|위해|부분|부위|에서|후|및|,|:)\s*$", re.I)
 _DONE_RE = re.compile(
-    r"교체함|교체\s*설치함|교체\s*하였음|교체됨|신규\s*교체|신규\s*제작|제작\s*후\s*교체|설치함|설치\s*완료|실시함|작업함|작업\s*실시|보수\s*완료|용접\s*실시|repair(ed)?|replace(d)?|fabricated|도장\s*실시|coating\s*실시|완료함",
+    r"교체함|교체\s*설치함|교체\s*하였음|교체\s*완료함|교체\s*완료하였음|교체됨|신규\s*교체|신규\s*제작|제작\s*후\s*교체|설치함|설치\s*완료|실시함|실시하였음|실시\s*완료|작업함|작업\s*실시|보수\s*완료|보강함|보강\s*실시|용접\s*실시|용접\s*보수|재시공|시공하였음|repair(ed)?|replace(d)?|fabricated|도장\s*실시|coating\s*실시|완료함",
     re.I,
 )
 _AIR_COOLER_PLUG_SERVICE_RE = re.compile(r"air\s*cooler\s*plug|a/?c\s*plug|plug\b", re.I)
@@ -109,10 +109,11 @@ _INTERNAL_OBJECT_RE = re.compile(
     re.I,
 )
 _ASSEMBLY_OBJECT_RE = re.compile(
-    r"bundle|tube\s*bundle|retube|new\s*vessel|신규\s*용기|\bvessel\b|shell\s*cover|floating\s*head|\bchannel\b|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|expansion\s*joint|bellows|saddle(?!\s*clip)",
+    r"bundle|tube\s*bundle|retube|retubing|new\s*vessel|신규\s*용기|\bvessel\b|shell\s*cover|floating\s*head|\bchannel\b|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|expansion\s*joint|bellows|sleeve|saddle(?!\s*clip)",
     re.I,
 )
 _INSTALL_OR_REPLACE_RE = re.compile(r"교체|replace|설치|install|신규\s*제작|신규\s*교체|제작\s*후\s*교체|fabricat|retube", re.I)
+_ACTION_FALLBACK_RE = re.compile(r"교체|replace|retube|retubing|보수|repair|보강|용접|weld|도장|coating|plugging|plug|blind\s*처리|재시공|설치|시공", re.I)
 _ASSEMBLY_PERFORMED_RE = re.compile(
     r"신규\s*제작|사전\s*제작|제작\s*후\s*교체|pre\s*-?fabricat|신규\s*교체\s*실시|교체함|교체\s*설치함|설치함|retube|replace(d)?",
     re.I,
@@ -206,7 +207,7 @@ def is_action_sentence(text: str, raw_tags: List[str] | None = None) -> bool:
         and not re.search(r"누설|leak|교체|replace|보수|repair|용접|weld|균열|결함|손상|damage|막음|plugging|unplugging|재확관|확관|compound\s*sealing|box-?up", t, re.I)
     ):
         return False
-    return bool(raw_tags or classify_action(t))
+    return bool(raw_tags or classify_action(t) or (_ACTION_FALLBACK_RE.search(t) and (_DONE_RE.search(t) or re.search(r"보강함|시공하였음|재시공|실시하였음", t, re.I))))
 
 
 def is_finding_sentence(text: str, raw_tags: List[str] | None = None) -> bool:

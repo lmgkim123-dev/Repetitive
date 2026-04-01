@@ -35,7 +35,7 @@ _GOOD_NAME_RE = re.compile(
 )
 
 # ── 설비번호 패턴 ──
-_EQUIP_RE = re.compile(r"\b\d{2}\s?[A-Z]{1,4}-?\d{3,4}[A-Z]?\b", re.I)
+_EQUIP_RE = re.compile(r"\b\d{2,3}\s?[A-Z]{1,4}-?\d{3,4}[A-Z]?\b", re.I)
 
 
 def normalize_equipment_no(raw: str) -> str:
@@ -43,7 +43,7 @@ def normalize_equipment_no(raw: str) -> str:
         return ""
     text = str(raw).upper().strip()
     text = re.sub(r"\s+", "", text)
-    m = re.match(r"^(\d{2})([A-Z]{1,5})(\d{3,4}[A-Z]?)$", text)
+    m = re.match(r"^(\d{2,3})([A-Z]{1,5})(\d{3,4}[A-Z]?)$", text)
     if m:
         return f"{m.group(1)}{m.group(2)}-{m.group(3)}"
     return text

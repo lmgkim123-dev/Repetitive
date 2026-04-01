@@ -20,10 +20,10 @@ YEAR_RE = re.compile(r"(20\d{2})")
 # 설비번호 예시:
 # 02E-105A / 02 C-101 / 21-P-302-B4-24" / 02PSV-3007C / 52C-203A
 EQUIP_PATTERNS = [
-    re.compile(r"\b\d{2}\s?[A-Z]{1,4}-\d{3,4}[A-Z]?\b", re.I),                  # 02E-105A, 52C-203A
-    re.compile(r"\b\d{2}\s?[A-Z]{1,4}\d{3,4}[A-Z]?\b", re.I),                   # 02PSV3007C 유사형
-    re.compile(r"\b\d{2}[A-Z]{1,4}-\d{3,4}[A-Z]?(?:-[A-Z0-9]+)*-?\d{0,2}\"?\b", re.I),  # 21-P-302-B4-24"
-    re.compile(r"\b\d{2}[A-Z]{1,4}-\d{3,4}(?:[A-Z0-9-]+)?\b", re.I),            # 확장형
+    re.compile(r"\b\d{2,3}\s?[A-Z]{1,4}-\d{3,4}[A-Z]?\b", re.I),                  # 02E-105A, 52C-203A
+    re.compile(r"\b\d{2,3}\s?[A-Z]{1,4}\d{3,4}[A-Z]?\b", re.I),                   # 02PSV3007C 유사형
+    re.compile(r"\b\d{2,3}[A-Z]{1,4}-\d{3,4}[A-Z]?(?:-[A-Z0-9]+)*-?\d{0,2}\"?\b", re.I),  # 21-P-302-B4-24"
+    re.compile(r"\b\d{2,3}[A-Z]{1,4}-\d{3,4}(?:[A-Z0-9-]+)?\b", re.I),            # 확장형
 ]
 
 DAMAGE_KEYWORDS = {
@@ -81,17 +81,17 @@ def normalize_equipment_no(raw: str) -> str:
     text = re.sub(r"\s+", "", text)
 
     # 02PSV3007C -> 02PSV-3007C 형태 보정
-    m = re.match(r"^(\d{2})([A-Z]{2,5})(\d{3,4}[A-Z]?)$", text)
+    m = re.match(r"^(\d{2,3})([A-Z]{2,5})(\d{3,4}[A-Z]?)$", text)
     if m:
         return f"{m.group(1)}{m.group(2)}-{m.group(3)}"
 
     # 02E105A -> 02E-105A 형태 보정
-    m = re.match(r"^(\d{2})([A-Z]{1,4})(\d{3,4}[A-Z]?)$", text)
+    m = re.match(r"^(\d{2,3})([A-Z]{1,4})(\d{3,4}[A-Z]?)$", text)
     if m:
         return f"{m.group(1)}{m.group(2)}-{m.group(3)}"
 
     # 02 E-105A / 02E - 105A 류 정리
-    text = re.sub(r"^(\d{2})([A-Z]{1,4})-(\d{3,4}[A-Z]?)$", r"\1\2-\3", text)
+    text = re.sub(r"^(\d{2,3})([A-Z]{1,4})-(\d{3,4}[A-Z]?)$", r"\1\2-\3", text)
 
     return text
 

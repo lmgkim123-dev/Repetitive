@@ -80,7 +80,7 @@ ACTION_KEYWORDS = {
     '임시조치': [r'임시조치', r'box-?up', r'compound sealing'],
 }
 
-EQUIPMENT_REGEX = r'\b\d{2}[A-Z]-\d{3,4}[A-Z]{0,2}\b|\b\d{2}-[A-Z]-\d{3,4}[A-Z]{0,2}\b|\b\d{2}[A-Z]{1,3}-\d{3,4}[A-Z]{0,2}\b|\b\d{2}-[A-Z]-\d{1,4}-[A-Z0-9\-/\"]+\b'
+EQUIPMENT_REGEX = r'\b\d{2,3}[A-Z]-\d{3,4}[A-Z]{0,2}\b|\b\d{2,3}-[A-Z]-\d{3,4}[A-Z]{0,2}\b|\b\d{2,3}[A-Z]{1,3}-\d{3,4}[A-Z]{0,2}\b|\b\d{2,3}-[A-Z]-\d{1,4}-[A-Z0-9\-/\"]+\b'
 
 TEXT_EXTENSIONS = {'.txt'}
 PDF_EXTENSIONS = {'.pdf'}
