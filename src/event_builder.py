@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from typing import List
 from uuid import uuid4
 
@@ -239,6 +240,104 @@ def _merge_sentences(sentences: List[str], max_length: int = 320) -> str:
     return merged[:max_length]
 
 
+_GENERATED_OUTPUT_FILE_RE = re.compile(r"반복정비_고정장치_(?:필터결과|조치요약|과제후보)_v\d+|repeat[_ -]?task", re.I)
+_NAME_NOISE_RE = re.compile(
+    r"검사일|차기검사예정일|검사구분|상세내용|차기고려사항|등록일|공정담당자|검사원|발생년도|발췌\s*category|TA\s*조치사항|추후\s*권고사항",
+    re.I,
+)
+
+
+def _extract_year(value) -> int | None:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return None
+    text = str(value).strip()
+    if not text or text.lower() == 'nan':
+        return None
+    m = re.search(r"(19\d{2}|20\d{2})", text)
+    if not m:
+        return None
+    year = int(m.group(1))
+    if 1900 <= year <= 2100:
+        return year
+    return None
+
+
+def _clean_equipment_name_candidate(value: str, equipment_no: str = "") -> str:
+    t = _normalize_sentence(value)
+    if not t:
+        return ""
+    if equipment_no:
+        t = re.sub(re.escape(str(equipment_no)), " ", t, flags=re.I)
+    t = re.sub(r"^(?:AND|THE|OF)\s+", "", t, flags=re.I)
+    t = re.sub(r"\s+", " ", t).strip(" -/:;,.")
+    if not t or len(t) < 3:
+        return ""
+    if _NAME_NOISE_RE.search(t):
+        return ""
+    return t
+
+
+def _resolve_equipment_name(equipment_no: str, fallback_name: str, rows: pd.DataFrame) -> str:
+    weighted: List[str] = []
+    base = _clean_equipment_name_candidate(fallback_name, equipment_no)
+    if base:
+        weighted.extend([base, base, base])
+
+    for col in ["equipment_name", "설비명", "equipment"]:
+        if col not in rows.columns:
+            continue
+        for raw in rows[col].dropna().astype(str):
+            cleaned = _clean_equipment_name_candidate(raw, equipment_no)
+            if cleaned:
+                weighted.append(cleaned)
+
+    if not weighted:
+        return base
+
+    counts = Counter(weighted)
+    return sorted(counts.keys(), key=lambda name: (-counts[name], -len(name), name))[0]
+
+
+def _resolve_row_year(row) -> int | None:
+    for col in ["검사일", "event_date", "date", "inspection_date", "등록일"]:
+        if col in row:
+            year = _extract_year(row.get(col))
+            if year:
+                return year
+
+    sentence = _normalize_sentence(row.get("sentence", ""))
+    if sentence:
+        for pat in [
+            r"검사일\s*[:=]\s*([^/|,;]+)",
+            r"inspection\s*date\s*[:=]\s*([^/|,;]+)",
+            r"event\s*date\s*[:=]\s*([^/|,;]+)",
+        ]:
+            m = re.search(pat, sentence, re.I)
+            if m:
+                year = _extract_year(m.group(1))
+                if year:
+                    return year
+        year = _extract_year(sentence)
+        if year:
+            return year
+
+    year = _extract_year(row.get("year"))
+    if year:
+        return year
+
+    return _extract_year(row.get("source_file"))
+
+
+def _looks_like_generated_output_row(row) -> bool:
+    source_file = str(row.get("source_file", "") or "")
+    sentence = _normalize_sentence(row.get("sentence", ""))
+    if source_file and _GENERATED_OUTPUT_FILE_RE.search(source_file):
+        return True
+    if re.search(r"과제후보_등록형식|카테고리별_발췌|연도별_정비이벤트", sentence, re.I):
+        return True
+    return False
+
+
 _VERIFIED_EVENT_ACTION_OVERRIDES = {
     ("02E-129A", 2014): [
         "Backing Device PT 결과 양호함.",
@@ -414,9 +513,14 @@ def build_events_for_equipment(equipment_no: str, equipment_name: str, rows: pd.
         return []
 
     rows = rows.copy().reset_index(drop=True)
-    rows["_year"] = pd.to_numeric(rows.get("year", pd.Series(dtype=float)), errors="coerce")
+    rows = rows[~rows.apply(_looks_like_generated_output_row, axis=1)].copy()
+    if rows.empty:
+        return []
+
+    rows["_year"] = rows.apply(_resolve_row_year, axis=1)
     rows = rows.dropna(subset=["_year"])
     rows["_year"] = rows["_year"].astype(int)
+    equipment_name = _resolve_equipment_name(equipment_no, equipment_name, rows)
 
     events: List[MaintenanceEvent] = []
 
