@@ -73,7 +73,7 @@ _RECOM_RE = re.compile(
     re.I,
 )
 _RECOMMENDATION_ACTION_RE = re.compile(r"교체\s*요함|교체\s*필요|교체할\s*경우|적용\s*검토|차기|예정|요망|recommended|should\s+be|shall\s+be|next\s*(?:shutdown|turnaround|t\s*&\s*i)", re.I)
-_NEGATED_ACTION_RE = re.compile(r"(?:보수|repair|교체|replace|도장|paint|coating|용접|weld|설치|install|가공|machin(?:e|ed)|보강|reinforc(?:e|ed)|재시공|시공).{0,40}?(?:하지\s*않(?:음|았음)|미실시|실시하지\s*않(?:음|았음)|안\s*함|없음|불필요|별도\s*보수작업\s*실시하지\s*않음|보수\s*작업은\s*실시하지\s*않음|no\s+repair(?:\s+was\s+made)?|repair\s+was\s+not\s+made|not\s+repair(?:ed)?|not\s+repaired|need\s+not\s+repair|no\s+need\s+to\s+repair|not\s+required(?:\s+to\s+repair)?|it\s+was\s+decided\s+that\s+.*?not\s+repair)", re.I)
+_NEGATED_ACTION_RE = re.compile(r"(?:보수|repair|교체|replace|도장|paint|coating|용접|weld|설치|install|가공|machin(?:e|ed)|보강|reinforc(?:e|ed)|재시공|시공|retube|retubing).{0,40}?(?:하지\s*않(?:음|았음)|미실시|실시하지\s*않(?:음|았음)|안\s*함|없음|불필요|취소하였음|취소됨|취소|cancelled|canceled|별도\s*보수작업\s*실시하지\s*않음|보수\s*작업은\s*실시하지\s*않음|no\s+repair(?:\s+was\s+made)?|repair\s+was\s+not\s+made|not\s+repair(?:ed)?|not\s+repaired|need\s+not\s+repair|no\s+need\s+to\s+repair|not\s+required(?:\s+to\s+repair)?|it\s+was\s+decided\s+that\s+.*?not\s+repair)", re.I)
 _NOISE_RE = re.compile(
     r"^(?:\(?\d+\)?\s*)?(?:line\s*no\.?|nozzle\s*no\.?|"
     r"설계두께|최소허용두께|설계재질|부식여유|remaining thickness|"
@@ -495,6 +495,7 @@ def _row_records(year_group: pd.DataFrame) -> List[dict]:
                 "text": sentence,
                 "action_tags": action_tags,
                 "damage_tags": damage_tags,
+                "section": str(row.get("section", "") or "").strip().lower(),
             })
 
     merged: List[dict] = []
@@ -510,7 +511,7 @@ def _row_records(year_group: pd.DataFrame) -> List[dict]:
             or _CONTINUATION_START_RE.search(s)
             or _FRAGMENT_END_RE.search(prev_s)
         )
-        if should_merge:
+        if should_merge and prev.get("section", "") == rec.get("section", ""):
             prev["text"] = f"{prev_s} {s}".strip()
             prev["action_tags"] = list(dict.fromkeys(prev["action_tags"] + rec["action_tags"]))
             prev["damage_tags"] = list(dict.fromkeys(prev["damage_tags"] + rec["damage_tags"]))
@@ -550,6 +551,7 @@ def build_events_for_equipment(equipment_no: str, equipment_name: str, rows: pd.
             sentence = rec["text"]
             raw_action_tags = rec["action_tags"]
             raw_damage_tags = rec["damage_tags"]
+            section = rec.get("section", "")
 
             if not sentence or is_noise_sentence(sentence):
                 continue
@@ -563,7 +565,10 @@ def build_events_for_equipment(equipment_no: str, equipment_name: str, rows: pd.
             if meas:
                 measurement_texts.append(meas)
 
-            if is_recommendation_sentence(sentence) and not is_action_sentence(sentence, raw_action_tags):
+            explicit_future = bool(re.search(r"차기|다음\s*TA|향후|추후|recommend", sentence, re.I))
+            if section == "recommendation":
+                recommendations.append(sentence)
+            elif is_recommendation_sentence(sentence) and explicit_future and not is_action_sentence(sentence, raw_action_tags):
                 recommendations.append(sentence)
             elif is_action_sentence(sentence, raw_action_tags):
                 actions.append(sentence)

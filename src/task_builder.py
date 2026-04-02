@@ -84,7 +84,7 @@ _NEGATED_ACTION_RE = re.compile(
     r"(?:"
     r"(?:보수|repair|교체|replace|도장|paint|coating|용접|weld|설치|install|가공|machin(?:e|ed)|보강|reinforc(?:e|ed)|재시공|시공).{0,40}?"
     r"(?:하지\s*않(?:음|았음)|미실시|실시하지\s*않(?:음|았음)|안\s*함|없음|불필요)"
-    r"|보수\s*작업\s*없[이이]|보수작업\s*없이|보수하지\s*않고|용접\s*보수하지\s*않고|교체하지\s*않고"
+    r"|보수\s*작업\s*없[이이]|보수작업\s*없이|보수하지\s*않고|용접\s*보수하지\s*않고|교체하지\s*않고|취소하였음|취소됨|취소|cancelled|canceled"
     r"|without\s+repair|without\s+replacement|not\s+performed"
     r"|별도\s*보수작업\s*실시하지\s*않음"
     r"|보수\s*작업은\s*실시하지\s*않음"
@@ -531,9 +531,9 @@ def _extract_recommendation_items(event, allowed_years: set[int] | None = None) 
         text = _strip_other_year_history(raw, year)
         for clause in _split_clauses(text):
             clause = _clean_clause_text(clause)
-            clause = re.sub(r"^\(?\d+[)\.]\s*", "", clause)
+            clause = re.sub(r"^(?:차기\s*Recommendation\s*)?\(?\d+[)\.]\s*", "", clause, flags=re.I)
             clause = re.sub(r"^[\-•*]+\s*", "", clause)
-            clause = _normalize_text(clause)
+            clause = _normalize_text(clause).strip(" -/:;,.[]()")
             if not clause or _is_negative_or_empty(clause) or _is_historical_only(clause, year):
                 continue
             if _has_explicit_done(clause):
@@ -541,6 +541,12 @@ def _extract_recommendation_items(event, allowed_years: set[int] | None = None) 
             if re.fullmatch(r"(?:필요|요망|검토|예정)\)?[:：]?\s*\d+\.?", clause, re.I):
                 continue
             if len(clause) < 12:
+                continue
+            if re.search(r"\bMAT\b|최소요구|minimum\s+required", clause, re.I) and not re.search(r"교체|보수|설치|용접|도장|replace|repair|install|weld", clause, re.I):
+                continue
+            if re.match(r"^(?:필요|요망|검토|예정)\b", clause, re.I) and not re.search(r"교체|보수|설치|도장|용접|replace|repair|install|weld|coating|retub|packing|nozzle|bundle|lining|refractory", clause, re.I):
+                continue
+            if re.search(r"취소하였음|취소됨|\b취소\b|cancelled|canceled", clause, re.I):
                 continue
             if not re.search(r"차기|다음|향후|추후|권고|필요|요망|검토|예정|교체|보수|설치|도장|용접|replace|repair|install|weld|coating|retub|packing|nozzle|bundle|lining|refractory", clause, re.I):
                 continue

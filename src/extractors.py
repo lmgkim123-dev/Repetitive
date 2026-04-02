@@ -57,6 +57,29 @@ def _extract_year(value) -> int | None:
 
 
 
+def _split_field_text(text: str, section: str) -> list[str]:
+    t = _clean_text(text)
+    if not t:
+        return []
+    t = re.sub(r"\*\s*초기검사", "\n초기검사", t, flags=re.I)
+    t = re.sub(r"\*\s*상세검사", "\n상세검사", t, flags=re.I)
+    t = re.sub(r"\*\s*보수\s*/\s*개선\s*내용", "\n보수/개선 내용", t, flags=re.I)
+    t = re.sub(r"\*\s*보수\s*개선\s*내용", "\n보수/개선 내용", t, flags=re.I)
+    t = re.sub(r"(?m)^\s*(\d+[.)])\s*", r"\n\1 ", t)
+    t = re.sub(r"(?m)^\s*[-•]\s*", "\n- ", t)
+    parts = [p.strip() for p in re.split(r"\n+", t) if p and p.strip()]
+    out = []
+    for p in parts:
+        p = re.sub(r"\s+", " ", p).strip()
+        if len(p) < 2:
+            continue
+        if section == "recommendation" and re.fullmatch(r"(?:\d+[.)]?|차기\s*Recommendation|Recommendation|N/A|NA)", p, re.I):
+            continue
+        out.append(p)
+    return out or [t]
+
+
+
 def _records_from_list_sheet(df: pd.DataFrame, source_file: str, sheet_name: str) -> list[dict]:
     eq_no_col = _pick_column(df, ["설비번호", "equipment_no", "equipment no"])
     eq_name_col = _pick_column(df, ["설비명", "equipment_name", "equipment name"])
@@ -85,9 +108,11 @@ def _records_from_list_sheet(df: pd.DataFrame, source_file: str, sheet_name: str
         detail = _clean_text(r.get(detail_col)) if detail_col else ""
         rec = _clean_text(r.get(rec_col)) if rec_col else ""
         if detail and detail.lower() not in {"n/a", "na", "none"}:
-            rows.append({**base, "sentence": detail, "section": "detail", "action_tags": "", "damage_tags": ""})
+            for part in _split_field_text(detail, "detail"):
+                rows.append({**base, "sentence": part, "section": "detail", "action_tags": "", "damage_tags": ""})
         if rec and rec.lower() not in {"n/a", "na", "none"}:
-            rows.append({**base, "sentence": rec, "section": "recommendation", "action_tags": "", "damage_tags": ""})
+            for part in _split_field_text(rec, "recommendation"):
+                rows.append({**base, "sentence": part, "section": "recommendation", "action_tags": "", "damage_tags": ""})
     return rows
 
 
