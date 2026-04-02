@@ -566,6 +566,35 @@ def _build_title(equipment_no: str, equipment_name: str, category: str) -> str:
     return f"{base} - {category}" if category else base
 
 
+def _clean_equipment_name(name: str) -> str:
+    t = _normalize_text(name)
+    if not t:
+        return ""
+    t = re.sub(r"^(?:AND|THE)\s+", "", t, flags=re.I)
+    t = re.sub(r"\s+", " ", t).strip(" -/:;,.")
+    if re.search(r"검사일|상세내용|차기고려사항|발생년도|발췌\s*category", t, re.I):
+        return ""
+    return t
+
+
+def _resolve_case_equipment_name(case: RepeatCase) -> str:
+    counts: dict[str, int] = {}
+
+    def add(name: str, weight: int = 1):
+        cleaned = _clean_equipment_name(name)
+        if not cleaned:
+            return
+        counts[cleaned] = counts.get(cleaned, 0) + weight
+
+    add(getattr(case, "equipment_name", ""), 3)
+    for event in getattr(case, "events", []) or []:
+        add(getattr(event, "equipment_name", ""), 1)
+
+    if not counts:
+        return _clean_equipment_name(getattr(case, "equipment_name", ""))
+    return sorted(counts.keys(), key=lambda name: (-counts[name], -len(name), name))[0]
+
+
 def _build_detail_from_items(equipment_no: str, equipment_name: str, category: str, items: List[dict], recs: List[str]) -> str:
     years = sorted({item['year'] for item in items})
     lines = ["개요"]
@@ -649,7 +678,7 @@ def build_task_rows(cases: List[RepeatCase]) -> List[TaskRow]:
     row_no = 1
     for case in cases:
         eq_no = case.equipment_no
-        eq_name = case.equipment_name
+        eq_name = _resolve_case_equipment_name(case)
         item_map: dict[str, list] = defaultdict(list)
         for event in case.events:
             for item in _extract_action_items(event):
