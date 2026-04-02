@@ -117,6 +117,7 @@ _ASSEMBLY_OBJECT_RE = re.compile(
 _INSTALL_OR_REPLACE_RE = re.compile(r"교체|replace|설치|install|신규\s*제작|신규\s*교체|제작\s*후\s*교체|fabricat|retube", re.I)
 _ACTION_FALLBACK_RE = re.compile(r"교체|replace|replaced|replacement|renewed|prefabricated|retube|retubing|보수|부분\s*보수|부분보수|repair|repaired|reinforced|reconditioned|restored|restoration|machined|lathe\s*machined|보강|용접|weld|reweld|seal\s*weld|weld[- ]?built[- ]?up|ground\s*out|deposit\s*welding|metal\s*plugged|도장|painted|coating|plugging|plug|blind\s*처리|재시공|설치|시공|lining\s*repair|lining\s*restored|concrete\s*lining|concrete\s*repair|내화물\s*보수|refractory|mortar|anchor\s*mesh", re.I)
 _TOOLING_RE = re.compile(r"유압\s*토크\s*렌치|토크\s*렌치|hydraulic\s*torque\s*wrench|torque\s*wrench", re.I)
+_LEVEL_GAUGE_RE = re.compile(r"level\s*gauge|레벨\s*게이지|liquid\s*level\s*gauge", re.I)
 _ASSEMBLY_PERFORMED_RE = re.compile(
     r"신규\s*제작|사전\s*제작|제작\s*후\s*교체|pre\s*-?fabricat|prefabricated|newly\s*fabricated|신규\s*교체\s*실시|교체함|교체\s*설치함|설치함|retube|renewed|replace(d)?",
     re.I,
@@ -414,7 +415,7 @@ def _is_verified_assembly_replacement_sentence(text: str, raw_action_tags: List[
     raw_action_tags = [x.strip().lower() for x in (raw_action_tags or []) if x]
     if not t or not _ASSEMBLY_OBJECT_RE.search(t):
         return False
-    if _TOOLING_RE.search(t):
+    if _TOOLING_RE.search(t) or _LEVEL_GAUGE_RE.search(t):
         return False
     if _NOZZLE_KEYWORD_RE.search(t) or _INTERNAL_OBJECT_RE.search(t):
         return False

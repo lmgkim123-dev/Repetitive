@@ -105,6 +105,7 @@ _NEGATED_ACTION_RE = re.compile(
 )
 _COATING_DAMAGE_ONLY_RE = re.compile(r"도장\s*손상|coating\s*damage|paint\s*damage|도장\s*박리", re.I)
 _TOOLING_RE = re.compile(r"유압\s*토크\s*렌치|토크\s*렌치|hydraulic\s*torque\s*wrench|torque\s*wrench", re.I)
+_LEVEL_GAUGE_RE = re.compile(r"level\s*gauge|레벨\s*게이지|liquid\s*level\s*gauge", re.I)
 _INSPECTION_ONLY_RE = re.compile(r"\bMT\b|\bPT\b|\bUT\b|검사|점검|확인|power\s*brush|power\s*brushing|세척|clean|청소|수압\s*테스트|RT/?수압\s*테스트|액체침투탐상|침투탐상|자분탐상", re.I)
 _HISTORY_PAREN_RE = re.compile(r"\([^)]*(20\d{2})년[^)]*\)", re.I)
 _TRAILING_HISTORY_NOTE_RE = re.compile(r"(?:[‘'`]?\d{2}년|(?:19|20)\d{2}년).{0,220}$", re.I)
@@ -423,6 +424,14 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
             return ["단순 보수"]
         return []
 
+    # Level Gauge Assembly는 설비 본체 Assembly 교체가 아니라 계기/부속 배관 정비로 간주한다.
+    if _LEVEL_GAUGE_RE.search(combined):
+        if _is_finding_recommendation_only(combined) or (_looks_like_recommendation(combined) and not has_done and not has_simple):
+            return []
+        if re.search(r"box-?up|배관|pipe|piping|condensate|내부\s*배관|교체\s*작업\s*진행|정비", combined, re.I) or has_replace or has_simple or has_done:
+            return ["단순 보수"]
+        return []
+
     coating_done = bool(re.search(r"보수도장|재도장|도장\s*실시|painted|painting|coating\s*실시|coat(?:ed|ing)", combined, re.I))
     if has_coating and _COATING_DAMAGE_ONLY_RE.search(combined) and not coating_done:
         has_coating = False
@@ -663,7 +672,7 @@ def _category_row_is_valid(category: str, items: List[dict]) -> bool:
     if _RECOMMEND_ONLY_RE.search(texts) and not _ACTION_DONE_RE.search(texts):
         return False
     if category == "Assembly 교체":
-        if _TOOLING_RE.search(texts):
+        if _TOOLING_RE.search(texts) or _LEVEL_GAUGE_RE.search(texts):
             return False
         return bool(
             re.search(
