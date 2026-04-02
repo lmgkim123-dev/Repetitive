@@ -107,11 +107,11 @@ _INTERNAL_EXCLUDE_RE = re.compile(r"충진물|\bfiller\b|filter\s*media|adsorben
 _SMALL_PART_ONLY_RE = re.compile(r"\bbolt\b|\bnut\b|\bgasket\b|washer|stud|pin|keeper", re.I)
 _NOZZLE_KEYWORD_RE = re.compile(r"nozzle|노즐|\bnzl\b|\belbow\b", re.I)
 _INTERNAL_OBJECT_RE = re.compile(
-    r"tray|chimney\s*tray|bubble\s*cap|flexi\s*-?cap|downcomer|weir\s*plate|screen|inner\s*screen|outer\s*screen|mesh|clip|support\s*clip|packing|distributor|collector|baffle|demister|internal|entry\s*horn|riser\s*pipe\s*hat|punch\s*plate|panel\s*coil|new\s*coil|old\s*coil|coil\b|beam\s*support|support\s*channel|tube\s*support|support\s*casting|hook\s*casting|roof\s*casting|tube\s*hanger|corrosion\s*probe\s*assembly|probe\s*assembly|corrosion\s*probe|grating|flat\s*form|refractory|\bvalve\b",
+    r"tray|chimney\s*tray|bubble\s*cap|flexi\s*-?cap|downcomer|weir\s*plate|screen|inner\s*screen|outer\s*screen|mesh|clip|support\s*clip|packing|distributor|collector|baffle|demister|internal|entry\s*horn|riser\s*pipe\s*hat|punch\s*plate|panel\s*coil|new\s*coil|old\s*coil|coil\b|beam\s*support|support\s*channel|tube\s*support|support\s*casting|hook\s*casting|roof\s*casting|tube\s*hanger|corrosion\s*probe\s*assembly|probe\s*assembly|corrosion\s*probe|grating|flat\s*form|refractory|\bvalve\b|ferrule|burner\s*tile|checker\s*wall|brick|castable|ceramic\s*sleeve",
     re.I,
 )
 _ASSEMBLY_OBJECT_RE = re.compile(
-    r"bundle|tube\s*bundle|retube|retubing|new\s*vessel|신규\s*용기|\bvessel\b|shell\s*cover|floating\s*head|\bchannel\b|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|steam\s*manifold|pilot\s*gas\s*assembly|chimney\s*section|return\s*bend|expansion\s*joint|bellows|sleeve|saddle(?!\s*clip)",
+    r"bundle|tube\s*bundle|retube|retubing|new\s*vessel|신규\s*용기|\bvessel\b|shell\s*cover|floating\s*head|\bchannel\b|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|steam\s*manifold|pilot\s*gas\s*assembly|chimney\s*section|return\s*bend|expansion\s*joint|bellows|sleeve|saddle(?!\s*clip)|combust(?:or|er)|claus\s*combust(?:or|er)",
     re.I,
 )
 _INSTALL_OR_REPLACE_RE = re.compile(r"교체|replace|설치|install|신규\s*제작|신규\s*교체|제작\s*후\s*교체|fabricat|retube", re.I)

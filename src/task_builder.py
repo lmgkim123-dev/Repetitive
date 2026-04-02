@@ -43,12 +43,12 @@ _SMALL_PART_EXCLUDE_RE = re.compile(
     re.I,
 )
 _INTERNAL_PART_RE = re.compile(
-    r"mesh|screen|hold\s*-?down|holdown|clip|saddle\s*clip|grid\s*clip|tray|packing|bubble\s*cap|flexi\s*-?cap|tray\s*deck|tray\s*plate|packing\s*clip|baffle|weir\s*plate|demister|internal|seal\s*pan|entry\s*horn|distributor|collector|tray\s*cap|riser\s*pipe\s*hat|punch\s*plate|corrosion\s*probe\s*assembly|probe\s*assembly|corrosion\s*probe|heater\s*tube\s*support|radiant\s*tube\s*support|tube\s*casting\s*support|support\s*casting|hook\s*casting|roof\s*casting|tube\s*hanger|casting\s*support|tube\s*support|vortex\s*breaker|strainer|\bvalve\b|refractory",
+    r"mesh|screen|hold\s*-?down|holdown|clip|saddle\s*clip|grid\s*clip|tray|packing|bubble\s*cap|flexi\s*-?cap|tray\s*deck|tray\s*plate|packing\s*clip|baffle|weir\s*plate|demister|internal|seal\s*pan|entry\s*horn|distributor|collector|tray\s*cap|riser\s*pipe\s*hat|punch\s*plate|corrosion\s*probe\s*assembly|probe\s*assembly|corrosion\s*probe|heater\s*tube\s*support|radiant\s*tube\s*support|tube\s*casting\s*support|support\s*casting|hook\s*casting|roof\s*casting|tube\s*hanger|casting\s*support|tube\s*support|vortex\s*breaker|strainer|\bvalve\b|refractory|ferrule|burner\s*tile|checker\s*wall|brick|castable|ceramic\s*sleeve",
     re.I,
 )
 _NOZZLE_RE = re.compile(r"nozzle|노즐|\bnzl\b|\belbow\b", re.I)
 _ASSEMBLY_OBJ_RE = re.compile(
-    r"new\s*vessel|신규\s*용기|\bvessel\b|\bdrum\b|\bcolumn\b|\btower\b|\bbundle\b|retube|shell\s*cover|floating\s*head|\bchannel\b|top\s*head|bottom\s*head|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|steam\s*manifold|pilot\s*gas\s*assembly|chimney\s*section|return\s*bend|expansion\s*joint|bellows|saddle(?!\s*clip)",
+    r"new\s*vessel|신규\s*용기|\bvessel\b|\bdrum\b|\bcolumn\b|\btower\b|\bbundle\b|retube|shell\s*cover|floating\s*head|\bchannel\b|top\s*head|bottom\s*head|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|steam\s*manifold|pilot\s*gas\s*assembly|chimney\s*section|return\s*bend|expansion\s*joint|bellows|saddle(?!\s*clip)|combust(?:or|er)|claus\s*combust(?:or|er)",
     re.I,
 )
 _ASSEMBLY_CONTEXT_RE = re.compile(r"신규\s*제작|사전\s*제작|제작\s*후\s*교체|new|fabricat|retube|retubing|전체\s*교체|assy|assembly|신품\s*교체|pre\s*-?fabricat|bellows|sleeve", re.I)
@@ -69,9 +69,10 @@ _REPAIR_ACTION_RE = re.compile(
 )
 _REPLACE_RE = re.compile(r"교체|replace|replaced|replacement|renew(?:ed|al)?|newly\s*fabricated|prefabricated|reconditioned\s*with\s*new\s*one|replaced\s*with\s*new\s*ones|신규\s*제작|신규\s*교체|제작\s*후\s*교체|fabricated?.*replace|retube|retubed|retubing|re-?tubing|made\s+new|made\s+a\s+new|newly\s*installed|installed|교체\s*설치함|교체\s*완료|교체\s*완료함|교체\s*완료하였음", re.I)
 _ACTION_DONE_RE = re.compile(
-    r"교체함|교체\s*설치함|교체\s*하였음|교체\s*완료함|교체\s*완료하였음|교체됨|신규\s*교체|신규\s*제작|제작\s*후\s*교체|설치함|설치\s*하였음|설치\s*완료|실시함|실시하였음|실시\s*완료|작업함|작업\s*실시|보수함|보수하였음|보수\s*실시|보수실시|부분\s*보수|부분보수|보수\s*완료|보강함|보강\s*실시|복원함|복원\s*하였음|복원\s*완료|복구함|재조립|재\s*조립|조립\s*완료|결합\s*작업\s*실시|reinforc(?:e|ed|ing)|recondition(?:ed|ing)?|restor(?:e|ed|ation)?|machin(?:e|ed|ing)|lathe\s*machin(?:e|ed)|renew(?:ed|al)?|prefabricated|newly\s*fabricated|replaced\s*with\s*new\s*ones|reassembl(?:ed|y)|assembled|installed|modified|용접\s*실시|blind\s*처리|by-?pass\s*시킴|재시공|시공하였음|repair(ed)?|repair\s*performed|replace(d)?|fabricated|coating\s*실시|painted|도장\s*실시|완료함|reweld(?:ed|ing)?|weld\s*repaired|seal\s*weld(?:ed|ing)?|weld[- ]?built[- ]?up|built\s*up\s*with|ground\s*out|deposit\s*welding|metal\s*plugg(?:ed|ing)",
+    r"교체함|교체\s*설치함|교체\s*하였음|교체\s*하였습니다|교체하고|교체하여|교체\s*완료함|교체\s*완료하였음|교체\s*완료하였습니다|교체됨|신규\s*교체|신규\s*제작|제작\s*후\s*교체|설치함|설치\s*하였음|설치\s*하였습니다|설치\s*완료|실시함|실시하였음|실시하였습니다|실시\s*완료|작업함|작업\s*실시|보수함|보수하였음|보수하였습니다|보수\s*실시|보수실시|부분\s*보수|부분보수|보수\s*완료|보강함|보강\s*실시|복원함|복원\s*하였음|복원\s*완료|복구함|재조립|재\s*조립|조립함|조립\s*하였음|조립\s*하였습니다|조립\s*완료|결합\s*작업\s*실시|재축조|재축조하였음|재축조하였습니다|마감\s*처리함|reinforc(?:e|ed|ing)|recondition(?:ed|ing)?|restor(?:e|ed|ation)?|machin(?:e|ed|ing)|lathe\s*machin(?:e|ed)|renew(?:ed|al)?|prefabricated|newly\s*fabricated|replaced\s*with\s*new\s*ones|reassembl(?:ed|y)|assembled|installed|modified|용접\s*실시|blind\s*처리|by-?pass\s*시킴|재시공|재시공\s*하였음|재시공\s*하였습니다|시공하였음|시공하였습니다|repair(ed)?|repair\s*performed|replace(d)?|fabricated|coating\s*실시|painted|도장\s*실시|완료함|reweld(?:ed|ing)?|weld\s*repaired|seal\s*weld(?:ed|ing)?|weld[- ]?built[- ]?up|built\s*up\s*with|ground\s*out|deposit\s*welding|metal\s*plugg(?:ed|ing)",
     re.I,
 )
+_DONE_FALLBACK_RE = re.compile(r"교체하고|교체하여|교체\s*하였(?:음|습니다)|보수\s*하였(?:음|습니다)|조립\s*하였(?:음|습니다)|설치\s*하였(?:음|습니다)|시공\s*하였(?:음|습니다)|재시공\s*하였(?:음|습니다)|재축조\s*하였(?:음|습니다)|마감\s*처리함|Close\s*진행", re.I)
 _AIR_COOLER_PLUG_SERVICE_RE = re.compile(r"air\s*cooler\s*plug|a/?c\s*plug|plug\b", re.I)
 _AIR_COOLER_PLUG_NONREPAIR_RE = re.compile(r"분해|조립|해체|탈거|재조립|opening|closing|open|close", re.I)
 _RECOMMEND_ONLY_RE = re.compile(r"요망|요함|필요|권고|차기\s*T/?A|다음\s*T/?A|향후|추후|recommend(?:ed)?|recommended\s+that|it\s+is\s+recommended|strongly\s+recommended|will\s+be\s+closely\s+inspected|should\s+be|shall\s+be|must\s+be|need(?:s)?\s+(?:to\s+be\s+|to\s+)?(?:repair(?:ed)?|replace(?:d)?|renew(?:ed)?|install(?:ed)?|weld(?:ed)?)|requires?\s+(?:repair|replacement|renewal|installation)|planned\s+for|planned\s+at|scheduled\s+for|scheduled\s+to|next\s*(?:shutdown|turnaround|t\s*&\s*i)|subsequent\s*t\s*&\s*i|검토|적용\s*검토|교체할\s*경우|실시하여야|실시\s*하여야|하여야\s*겠음|해야\s*겠음|토록\s*하여야겠음", re.I)
@@ -124,11 +125,11 @@ _CURRENT_SCOPE_OVERRIDE_RE = re.compile(
 )
 _FINDING_RE = re.compile(r"양호|이상없|상태\s*양호|확인(?:함|하였음|되었음)?|good\s+condition|found|confirmed|observed|사용\s*가능|usable|acceptable", re.I)
 _CURRENT_ACTION_CUE_RE = re.compile(
-    r"금번|이번\s*TA|금번\s*조치사항|이번\s*조치사항|this\s+turnaround|this\s+shutdown|current\s+shutdown|current\s+turnaround|교체함|교체\s*하였음|교체\s*설치함|교체\s*실시|설치함|설치\s*완료|신규\s*설치|신규설치|보수함|보수\s*완료|복원\s*하였음|복원\s*완료|재조립|재\s*조립|replaced|installed|repaired|repair\s*performed|modified|reassembl(?:ed|y)|assembled|renewed|retubed",
+    r"금번|이번\s*TA|금번\s*조치사항|이번\s*조치사항|this\s+turnaround|this\s+shutdown|current\s+shutdown|current\s+turnaround|교체함|교체\s*하였음|교체\s*하였습니다|교체하고|교체하여|교체\s*설치함|교체\s*실시|설치함|설치\s*하였음|설치\s*하였습니다|설치\s*완료|신규\s*설치|신규설치|보수함|보수\s*하였음|보수\s*하였습니다|보수\s*완료|복원\s*하였음|복원\s*완료|조립함|조립\s*하였음|조립\s*하였습니다|재조립|재\s*조립|재축조|재축조하였음|재축조하였습니다|replaced|installed|repaired|repair\s*performed|modified|reassembl(?:ed|y)|assembled|renewed|retubed",
     re.I,
 )
 _ACTION_SIGNAL_RE = re.compile(
-    r"교체(?:\s*설치)?(?:함|하였음|완료|실시)?|설치(?:함|하였음|완료)?|신규\s*설치|신규설치|보수(?:함|하였음|완료|실시)?|복원(?:함|하였음|완료)?|복구(?:함|실시)?|재조립|재\s*조립|결합\s*작업\s*실시|신규\s*시공|replaced|installed|repaired|repair\s*performed|renewed|retubed|retubing|modified|reassembl(?:ed|y)|assembled|reweld(?:ed|ing)?|seal\s*weld(?:ed|ing)?|weld\s*repaired|weld[- ]?built[- ]?up|metal\s*plugg(?:ed|ing)|ground\s*out|deposit\s*welding",
+    r"교체(?:\s*설치)?(?:함|하였음|하였습니다|완료|실시)?|교체하고|교체하여|설치(?:함|하였음|하였습니다|완료)?|신규\s*설치|신규설치|보수(?:함|하였음|하였습니다|완료|실시)?|복원(?:함|하였음|완료)?|복구(?:함|실시)?|조립(?:함|하였음|하였습니다|완료)?|재조립|재\s*조립|결합\s*작업\s*실시|신규\s*시공|재축조|재축조하였음|재축조하였습니다|replaced|installed|repaired|repair\s*performed|renewed|retubed|retubing|modified|reassembl(?:ed|y)|assembled|reweld(?:ed|ing)?|seal\s*weld(?:ed|ing)?|weld\s*repaired|weld[- ]?built[- ]?up|metal\s*plugg(?:ed|ing)|ground\s*out|deposit\s*welding",
     re.I,
 )
 _RECOMMEND_TAIL_TRIGGER_RE = re.compile(
@@ -150,8 +151,8 @@ def _has_explicit_done(text: str) -> bool:
     if not t:
         return False
     return bool(re.search(
-        r"교체함|교체\s*하였음|교체\s*설치함|교체\s*설치하였음|교체\s*완료|교체\s*실시|설치함|설치\s*하였음|설치\s*완료|실시함|완료함|보수\s*완료|복원\s*하였음|복원\s*완료|용접보수|보수용접|재\s*용접|재용접|weld\s*repair|repair\s*weld|weld\s*repaired|reweld(?:ed|ing)?|seal\s*weld(?:ed|ing)?|weld[- ]?built[- ]?up|built\s*up\s*with|ground\s*out|deposit\s*welding|metal\s*plugg(?:ed|ing)|replace(d)?|installed|reassembl(?:ed|y)|assembled|modified|made\s+new|retube|retubed|retubing|re-?tubing|strength\s*welding|확관|bundle\s*사전\s*신규\s*제작\s*및\s*교체|bundle\s*사전\s*제작\s*및\s*교체|신규\s*bundle\s*로\s*교체함|신규\s*bundle\s*제작\s*되어\s*교체|신규\s*용기\s*제작\s*후\s*교체|제작\s*후\s*교체\s*실시"
-        , t, re.I))
+        r"교체함|교체\s*하였음|교체\s*하였습니다|교체하고|교체하여|교체\s*설치함|교체\s*설치하였음|교체\s*완료|교체\s*실시|설치함|설치\s*하였음|설치\s*하였습니다|설치\s*완료|실시함|완료함|보수\s*완료|보수\s*하였음|보수\s*하였습니다|복원\s*하였음|복원\s*완료|조립함|조립\s*하였음|조립\s*하였습니다|조립\s*완료|재축조|재축조하였음|재축조하였습니다|마감\s*처리함|용접보수|보수용접|재\s*용접|재용접|weld\s*repair|repair\s*weld|weld\s*repaired|reweld(?:ed|ing)?|seal\s*weld(?:ed|ing)?|weld[- ]?built[- ]?up|built\s*up\s*with|ground\s*out|deposit\s*welding|metal\s*plugg(?:ed|ing)|replace(d)?|installed|reassembl(?:ed|y)|assembled|modified|made\s+new|retube|retubed|retubing|re-?tubing|strength\s*welding|확관|bundle\s*사전\s*신규\s*제작\s*및\s*교체|bundle\s*사전\s*제작\s*및\s*교체|신규\s*bundle\s*로\s*교체함|신규\s*bundle\s*제작\s*되어\s*교체|신규\s*용기\s*제작\s*후\s*교체|제작\s*후\s*교체\s*실시"
+        , t, re.I) or _DONE_FALLBACK_RE.search(t))
 
 
 def _is_negative_or_empty(text: str) -> bool:
@@ -190,7 +191,13 @@ def _has_action_signal(text: str) -> bool:
     t = _normalize_text(text)
     if not t:
         return False
-    return bool(_ACTION_SIGNAL_RE.search(t) or _REPAIR_ACTION_RE.search(t) or _WELD_REPAIR_RE.search(t) or (_REPLACE_RE.search(t) and _CURRENT_ACTION_CUE_RE.search(t)))
+    return bool(
+        _ACTION_SIGNAL_RE.search(t)
+        or _REPAIR_ACTION_RE.search(t)
+        or _WELD_REPAIR_RE.search(t)
+        or _DONE_FALLBACK_RE.search(t)
+        or (_REPLACE_RE.search(t) and (_CURRENT_ACTION_CUE_RE.search(t) or _DONE_FALLBACK_RE.search(t)))
+    )
 
 
 def _split_negative_local_scopes(text: str) -> List[str]:
@@ -252,7 +259,7 @@ def _is_finding_recommendation_only(text: str) -> bool:
         return False
     has_finding = bool(_FINDING_RE.search(t))
     has_recommend = bool(_FUTURE_SCOPE_RE.search(t) or re.search(r"바람직|차기교체", t, re.I))
-    has_action = bool(_ACTION_DONE_RE.search(t) or _REPAIR_ACTION_RE.search(t) or _WELD_REPAIR_RE.search(t) or _REPLACE_RE.search(t))
+    has_action = bool(_ACTION_DONE_RE.search(t) or _DONE_FALLBACK_RE.search(t) or _REPAIR_ACTION_RE.search(t) or _WELD_REPAIR_RE.search(t) or _REPLACE_RE.search(t))
     return has_finding and has_recommend and not has_action
 
 
@@ -371,7 +378,7 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
     combined = _trim_noncurrent_tail(combined)
     if not combined:
         return []
-    if _INTERNAL_EXCLUDE_RE.search(combined) and not (_WELD_REPAIR_RE.search(combined) or _SIMPLE_REPAIR_RE.search(combined)):
+    if _INTERNAL_EXCLUDE_RE.search(combined) and not (_WELD_REPAIR_RE.search(combined) or _SIMPLE_REPAIR_RE.search(combined) or _REPLACE_RE.search(combined)):
         return []
     if _is_negative_or_empty(combined):
         return []
@@ -393,7 +400,7 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
         return []
     if _BLAST_ONLY_RE.search(combined) and not _COATING_RE.search(combined):
         return []
-    if _INSPECTION_ONLY_RE.search(combined) and not (_REPLACE_RE.search(combined) or _COATING_RE.search(combined) or _OVERLAY_RE.search(combined) or _SIMPLE_REPAIR_RE.search(combined) or _WELD_REPAIR_RE.search(combined) or _ACTION_DONE_RE.search(combined)):
+    if _INSPECTION_ONLY_RE.search(combined) and not (_REPLACE_RE.search(combined) or _COATING_RE.search(combined) or _OVERLAY_RE.search(combined) or _SIMPLE_REPAIR_RE.search(combined) or _WELD_REPAIR_RE.search(combined) or _ACTION_DONE_RE.search(combined) or _DONE_FALLBACK_RE.search(combined)):
         return []
 
     has_replace = bool(_REPLACE_RE.search(combined)) or "replace" in action_type.lower()
@@ -401,6 +408,7 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
     has_nozzle = bool(_NOZZLE_RE.search(combined))
     has_assembly_obj = bool(_ASSEMBLY_OBJ_RE.search(combined))
     has_assembly_ctx = bool(_ASSEMBLY_CONTEXT_RE.search(combined))
+    explicit_assembly_obj = bool(re.search(r"combust(?:or|er)|claus\s*combust(?:or|er)|bundle|tube\s*bundle|new\s*vessel|신규\s*용기|shell\s*cover|floating\s*head|channel|assembly|assy|duct|damper|steam\s*manifold|pilot\s*gas\s*assembly|chimney\s*section|return\s*bend|expansion\s*joint|bellows|saddle(?!\s*clip)", combined, re.I))
     has_small_part = bool(_SMALL_PART_EXCLUDE_RE.search(combined))
     has_tooling = bool(_TOOLING_RE.search(combined))
     has_coating = bool(_COATING_RE.search(combined)) or "coating" in action_type.lower()
@@ -408,66 +416,70 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
     has_weld_repair = bool(_WELD_REPAIR_RE.search(combined)) or "weld_repair" in action_type.lower()
     has_simple = bool(_SIMPLE_REPAIR_RE.search(combined)) or any(x in action_type.lower() for x in ["temporary_fix", "plugging"])
     has_done = _has_explicit_done(combined)
+    categories: List[str] = []
 
-    # 유압토크렌치/토크렌치 교체는 설비 본체 Assembly 교체가 아니라 단순 보수로 본다.
     if has_tooling:
         if has_replace or has_simple or has_done:
             return ["단순 보수"]
         return []
 
-    # 도장 손상/박리 같은 finding-only 문장은 실제 도장 작업이 없는 한 분류하지 않는다.
-    if has_coating and _COATING_DAMAGE_ONLY_RE.search(combined) and not re.search(r"보수도장|재도장|도장\s*실시|painted|painting|coating\s*실시|coat(?:ed|ing)", combined, re.I):
-        return []
+    coating_done = bool(re.search(r"보수도장|재도장|도장\s*실시|painted|painting|coating\s*실시|coat(?:ed|ing)", combined, re.I))
+    if has_coating and _COATING_DAMAGE_ONLY_RE.search(combined) and not coating_done:
+        has_coating = False
 
-    # 도장은 교체/보수 문장이 섞이지 않은 경우에만 단독 분류
-    if has_coating and not has_replace and not has_simple and not has_overlay:
-        if not re.search(r"보수도장|재도장|도장\s*실시|painted|painting|coating\s*실시|coat(?:ed|ing)", combined, re.I):
-            return []
-        return ["도장"]
-
-    # 교체는 nozzle > internal > assembly 우선순위로 단일 분류
-    if has_replace:
-        if _looks_like_recommendation(combined) and not has_done:
-            return []
+    if has_replace and not (_looks_like_recommendation(combined) and not has_done):
+        nozzle_ok = False
         if has_nozzle:
-            if not has_done and not re.search(r"made\s+new|newly\s*installed|installed|fabricated|new\s*nozzle|new\s*nozzles|신규\s*설치|신규\s*제작", combined, re.I):
-                return []
-            if re.search(r"mint|ont|pitting|부식|감육|두께감소", combined, re.I) and not re.search(r"신규|제작|설치|제거\s*후|size-?up|기존", combined, re.I):
-                return []
-            return ["Nozzle 교체"]
+            nozzle_ok = bool(
+                has_done
+                or re.search(r"made\s+new|newly\s*installed|installed|fabricated|new\s*nozzle|new\s*nozzles|신규\s*설치|신규\s*제작|조립하였|조립함|교체하고|교체하여", combined, re.I)
+            )
+            if nozzle_ok and re.search(r"mint|ont|pitting|부식|감육|두께감소", combined, re.I) and not re.search(r"신규|제작|설치|제거\s*후|size-?up|기존|조립하였|교체하고|교체하여", combined, re.I):
+                nozzle_ok = False
+        if nozzle_ok:
+            categories.append("Nozzle 교체")
+
+        internal_ok = False
         if has_internal and not has_small_part:
-            if not has_done and not has_assembly_ctx:
-                return []
-            return ["단순 내부 구성품 교체"]
-        if (has_assembly_obj or has_assembly_ctx) and not has_small_part and not has_internal and not has_nozzle:
-            if not has_done and not has_assembly_ctx and not re.search(r"retube(?:d|ing)?|re-?tubing|made\s+new|fabricated|installed|reassembl(?:ed|y)|strength\s*welding|튜브\s*교체|번들\s*교체|부분\s*retubing", combined, re.I):
-                return []
-            if _looks_like_recommendation(combined) and not has_done:
-                return []
-            if re.search(r"설계두께|최소허용두께|상태|pitting|general corrosion|부식", combined, re.I) and not has_done:
-                return []
-            return ["Assembly 교체"]
+            internal_ok = bool(
+                has_done
+                or has_assembly_ctx
+                or re.search(r"전체\s*교체|교체\s*완료|교체하고|교체하여|조립하였|설치하였|재축조|신규|제작", combined, re.I)
+            )
+        if internal_ok:
+            categories.append("단순 내부 구성품 교체")
 
-    if has_internal and not has_small_part and has_done and re.search(r"재조립|재\s*조립|조립\s*완료|결합\s*작업\s*실시|설치|install(?:ed)?|reassembl(?:ed|y)|assembled|modified", combined, re.I):
-        return ["단순 내부 구성품 교체"]
+        assembly_ok = False
+        if (explicit_assembly_obj or (has_assembly_ctx and not has_internal)) and not has_small_part:
+            if not has_nozzle or explicit_assembly_obj:
+                assembly_ok = bool(
+                    has_done
+                    or has_assembly_ctx
+                    or re.search(r"retube(?:d|ing)?|re-?tubing|made\s+new|fabricated|installed|reassembl(?:ed|y)|strength\s*welding|튜브\s*교체|번들\s*교체|부분\s*retubing|교체하고|교체하여|조립하였", combined, re.I)
+                )
+            if assembly_ok and _looks_like_recommendation(combined) and not has_done:
+                assembly_ok = False
+            if assembly_ok and re.search(r"설계두께|최소허용두께|상태|pitting|general corrosion|부식", combined, re.I) and not has_done and not has_assembly_ctx:
+                assembly_ok = False
+        if assembly_ok:
+            categories.append("Assembly 교체")
 
-    if has_coating:
-        return ["도장"]
+    if not categories and has_internal and not has_small_part and has_done and re.search(r"재조립|재\s*조립|조립|결합\s*작업\s*실시|설치|install(?:ed)?|reassembl(?:ed|y)|assembled|modified|재축조|마감\s*처리함", combined, re.I):
+        categories.append("단순 내부 구성품 교체")
+
+    if has_coating and (coating_done or not (has_replace or has_simple or has_overlay)):
+        categories.append("도장")
     if has_overlay or has_weld_repair:
-        if _looks_like_recommendation(combined) and not has_done:
-            return []
-        if not (has_done or re.search(r"육성용접|overlay|erni-?cr-?3|er-?nicr-?3|strength\s*welding|seal\s*weld(?:ing|ed)?|seal-?weld(?:ing|ed)?|재\s*용접|재용접|용접보수|보수용접|weld\s*repair(?:ed)?|repair\s*weld(?:ing|ed)?|weld\s*repaired|reweld(?:ed|ing)?|weld[- ]?built[- ]?up|built\s*up\s*with|ground\s*out|deposit\s*welding|metal\s*plugg(?:ed|ing)", combined, re.I)):
-            return []
-        return ["육성용접"]
+        if not (_looks_like_recommendation(combined) and not has_done):
+            if has_done or re.search(r"육성용접|overlay|erni-?cr-?3|er-?nicr-?3|strength\s*welding|seal\s*weld(?:ing|ed)?|seal-?weld(?:ing|ed)?|재\s*용접|재용접|용접보수|보수용접|weld\s*repair(?:ed)?|repair\s*weld(?:ing|ed)?|weld\s*repaired|reweld(?:ed|ing)?|weld[- ]?built[- ]?up|built\s*up\s*with|ground\s*out|deposit\s*welding|metal\s*plugg(?:ed|ing)", combined, re.I):
+                categories.append("육성용접")
     if has_simple:
-        if _RECOMMEND_ONLY_RE.search(combined) and not has_done:
-            return []
-        if re.search(r"보수작업\s*없이|without\s+repair|보수하지\s*않고|용접\s*보수하지\s*않고", combined, re.I):
-            return []
-        if not (_REPAIR_ACTION_RE.search(combined) or has_done):
-            return []
-        return ["단순 보수"]
-    return []
+        if not (_RECOMMEND_ONLY_RE.search(combined) and not has_done):
+            if not re.search(r"보수작업\s*없이|without\s+repair|보수하지\s*않고|용접\s*보수하지\s*않고", combined, re.I):
+                if _REPAIR_ACTION_RE.search(combined) or has_done:
+                    categories.append("단순 보수")
+
+    return _unique_keep_order([c for c in CATEGORY_ORDER if c in categories])
 
 
 def _unique_action_items(items: List[dict]) -> List[dict]:
@@ -655,11 +667,11 @@ def _category_row_is_valid(category: str, items: List[dict]) -> bool:
             return False
         return bool(
             re.search(
-                r"bundle|tube\s*bundle|new\s*vessel|신규\s*용기|retube|shell\s*cover|floating\s*head|channel\b|backing\s*device|\bassembly\b|\bassy\b|duct|damper|vortex\s*breaker",
+                r"bundle|tube\s*bundle|new\s*vessel|신규\s*용기|retube|shell\s*cover|floating\s*head|channel\b|backing\s*device|\bassembly\b|\bassy\b|duct|damper|vortex\s*breaker|combust(?:or|er)|claus\s*combust(?:or|er)|신규\s*제작된\s*장치|신규\s*장치|\bdevice\b|\bunit\b",
                 texts,
                 re.I,
             )
-            and (_ACTION_DONE_RE.search(texts) or _REPLACE_RE.search(texts))
+            and (_has_explicit_done(texts) or _ACTION_DONE_RE.search(texts) or _REPLACE_RE.search(texts))
         )
     if category == "Nozzle 교체":
         return bool(re.search(r"nozzle|노즐|\bnzl\b|\belbow\b", texts, re.I))
@@ -673,7 +685,7 @@ def _category_row_is_valid(category: str, items: List[dict]) -> bool:
         return bool(
             _TOOLING_RE.search(texts)
             or _REPAIR_ACTION_RE.search(texts)
-            or (_ACTION_DONE_RE.search(texts) and (_SIMPLE_REPAIR_RE.search(texts) or _TOOLING_RE.search(texts)))
+            or ((_has_explicit_done(texts) or _ACTION_DONE_RE.search(texts)) and (_SIMPLE_REPAIR_RE.search(texts) or _TOOLING_RE.search(texts)))
         )
     return True
 
