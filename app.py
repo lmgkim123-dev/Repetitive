@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import re
 import tempfile
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 from typing import Iterable
 
@@ -41,6 +43,36 @@ def save_uploaded_files(files: Iterable) -> Path:
 def _truncate_multiline(text: str, max_len: int = 140) -> str:
     text = str(text or "").replace("\n", " / ")
     return text[:max_len] + ("..." if len(text) > max_len else "")
+
+
+_GENERATED_FIXED_RESULT_RE = re.compile(r"반복정비_고정장치_(?:필터결과|조치요약|과제후보).*\.xls", re.I)
+_GENERATED_FIXED_SHEETS = {"과제후보_등록형식", "카테고리별_발췌", "연도별_정비이벤트"}
+
+
+def _looks_like_generated_fixed_result_file(uploaded_file) -> bool:
+    name = Path(uploaded_file.name).name
+    if _GENERATED_FIXED_RESULT_RE.search(name):
+        return True
+    if Path(name).suffix.lower() not in {".xlsx", ".xls", ".xlsm", ".xlsb"}:
+        return False
+    try:
+        excel = pd.ExcelFile(BytesIO(uploaded_file.getbuffer()))
+        if _GENERATED_FIXED_SHEETS.issubset(set(excel.sheet_names)):
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def split_fixed_input_files(files: list) -> tuple[list, list[str]]:
+    usable = []
+    skipped = []
+    for uploaded_file in files:
+        if _looks_like_generated_fixed_result_file(uploaded_file):
+            skipped.append(uploaded_file.name)
+        else:
+            usable.append(uploaded_file)
+    return usable, skipped
 
 
 # -------------------------------------------------
@@ -131,7 +163,11 @@ def run_fixed_analysis(files: list) -> None:
     progress_bar = st.progress(0, text="분석 준비 중...")
     status_box = st.empty()
 
-    temp_dir = save_uploaded_files(files)
+    usable_files, skipped_files = split_fixed_input_files(files)
+    if not usable_files:
+        raise ValueError("분석 가능한 원본 입력 파일이 없습니다. 기존 결과 파일은 제외하고 목록/Trouble List/원본 보고서만 업로드해 주세요.")
+
+    temp_dir = save_uploaded_files(usable_files)
     status_box.info("고정장치 자료 분석 중...")
 
     def update_progress(current: int, total: int, filename: str):
@@ -140,7 +176,7 @@ def run_fixed_analysis(files: list) -> None:
 
     repeat_task_df, repeat_cases, all_events, equipment_names = run_pipeline_v6(temp_dir, progress_callback=update_progress)
     overview_df = build_equipment_summary_dataframe(all_events)
-    full_excel_bytes, full_excel_name = make_fixed_excel_bytes(overview_df, repeat_cases, all_events, "반복정비_고정장치_조치요약_v6")
+    full_excel_bytes, full_excel_name = make_fixed_excel_bytes(repeat_task_df, repeat_cases, all_events, "반복정비_고정장치_과제후보_v6")
 
     progress_bar.progress(100, text="완료")
     status_box.success("고정장치 분석 완료")
@@ -153,7 +189,9 @@ def run_fixed_analysis(files: list) -> None:
         "equipment_names": equipment_names,
         "full_excel_bytes": full_excel_bytes,
         "full_excel_name": full_excel_name,
-        "uploaded_count": len(files),
+        "uploaded_count": len(usable_files),
+        "raw_uploaded_count": len(files),
+        "skipped_files": skipped_files,
     }
 
 
@@ -371,6 +409,7 @@ if run_btn and mode == "배관":
 fixed_result = st.session_state.get("fixed_analysis_result")
 if mode == "고정장치" and fixed_result:
     overview_df = fixed_result["overview_df"]
+    repeat_task_df = fixed_result["repeat_task_df"]
     repeat_cases = fixed_result["repeat_cases"]
     all_events = fixed_result["all_events"]
 
@@ -378,11 +417,16 @@ if mode == "고정장치" and fixed_result:
     repeat_count = int((pd.to_numeric(overview_df.get("발생년도수"), errors="coerce").fillna(0) >= 2).sum()) if not overview_df.empty else 0
 
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("업로드 파일 수", f"{fixed_result['uploaded_count']:,}")
+    raw_uploaded_count = fixed_result.get("raw_uploaded_count", fixed_result["uploaded_count"])
+    c1.metric("입력 파일(사용/전체)", f"{fixed_result['uploaded_count']:,}/{raw_uploaded_count:,}")
     c2.metric("연도별 정비 이벤트 수", f"{len(all_events):,}")
     c3.metric("설비+카테고리 요약 수", f"{len(overview_df):,}")
     c4.metric("1회성", f"{one_time_count:,}")
     c5.metric("2회 이상 반복", f"{repeat_count:,}")
+
+    skipped_files = fixed_result.get("skipped_files", [])
+    if skipped_files:
+        st.warning("이전 결과 파일은 입력에서 자동 제외했습니다: " + ", ".join(skipped_files))
 
     st.subheader("필터 결과")
     occurrence_option = st.radio(
@@ -398,7 +442,8 @@ if mode == "고정장치" and fixed_result:
     )
     min_year_count = 1 if occurrence_option == "1회성 이상" else 2
 
-    filtered_task_df = filter_task_df(overview_df, selected_categories, min_year_count)
+    base_task_df = repeat_task_df if (occurrence_option == "2회 이상 반복" and repeat_task_df is not None and not repeat_task_df.empty) else overview_df
+    filtered_task_df = filter_task_df(base_task_df, selected_categories, min_year_count)
     filtered_cases, filtered_events = filter_related_objects(filtered_task_df, repeat_cases, all_events)
     category_extract_df = build_category_extract_dataframe(filtered_task_df)
     display_task_df = build_task_display_df(filtered_task_df)
