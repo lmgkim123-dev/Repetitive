@@ -39,51 +39,109 @@ _INTERNAL_EXCLUDE_RE = re.compile(
     re.I,
 )
 _SMALL_PART_EXCLUDE_RE = re.compile(
-    r"\bbolt\b|\bnut\b|\bgasket\b|test\s*ring|collar\s*bolt|floating\s*head\s*bolt|\bf/h\s*bolt\b|keeper|pin|valve\s*wheel|stud|washer|anchor",
+    r"\bbolt\b|\bnut\b|\bgasket\b|test\s*ring|collar\s*bolt|floating\s*head\s*bolt|\bf/h\s*bolt\b|keeper|\bpin\b(?!\s*hole)|valve\s*wheel|stud|washer|\banchor\b(?!\s*mesh)",
     re.I,
 )
 _INTERNAL_PART_RE = re.compile(
-    r"mesh|screen|hold\s*-?down|holdown|clip|saddle\s*clip|grid\s*clip|tray|packing|bubble\s*cap|baffle|weir\s*plate|demister|internal|seal\s*pan|entry\s*horn|distributor|collector|tray\s*cap|riser\s*pipe\s*hat|punch\s*plate|corrosion\s*probe\s*assembly|probe\s*assembly|corrosion\s*probe|heater\s*tube\s*support|radiant\s*tube\s*support|tube\s*casting\s*support|casting\s*support|tube\s*support|vortex\s*breaker|strainer|\bvalve\b",
+    r"mesh|screen|hold\s*-?down|holdown|clip|saddle\s*clip|grid\s*clip|tray|packing|bubble\s*cap|flexi\s*-?cap|tray\s*deck|tray\s*plate|packing\s*clip|baffle|weir\s*plate|demister|internal|seal\s*pan|entry\s*horn|distributor|collector|tray\s*cap|riser\s*pipe\s*hat|punch\s*plate|corrosion\s*probe\s*assembly|probe\s*assembly|corrosion\s*probe|heater\s*tube\s*support|radiant\s*tube\s*support|tube\s*casting\s*support|support\s*casting|hook\s*casting|roof\s*casting|tube\s*hanger|casting\s*support|tube\s*support|vortex\s*breaker|strainer|\bvalve\b|refractory",
     re.I,
 )
 _NOZZLE_RE = re.compile(r"nozzle|노즐|\bnzl\b|\belbow\b", re.I)
 _ASSEMBLY_OBJ_RE = re.compile(
-    r"new\s*vessel|신규\s*용기|\bvessel\b|\bdrum\b|\bcolumn\b|\btower\b|\bbundle\b|retube|shell\s*cover|floating\s*head|\bchannel\b|top\s*head|bottom\s*head|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|expansion\s*joint|bellows|saddle(?!\s*clip)",
+    r"new\s*vessel|신규\s*용기|\bvessel\b|\bdrum\b|\bcolumn\b|\btower\b|\bbundle\b|retube|shell\s*cover|floating\s*head|\bchannel\b|top\s*head|bottom\s*head|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|steam\s*manifold|pilot\s*gas\s*assembly|chimney\s*section|return\s*bend|expansion\s*joint|bellows|saddle(?!\s*clip)",
     re.I,
 )
 _ASSEMBLY_CONTEXT_RE = re.compile(r"신규\s*제작|사전\s*제작|제작\s*후\s*교체|new|fabricat|retube|retubing|전체\s*교체|assy|assembly|신품\s*교체|pre\s*-?fabricat|bellows|sleeve", re.I)
-_COATING_RE = re.compile(r"phenolic\s*epoxy|coating(?!\s*상태)|paint(?!\s*상태)|도장(?!상태)|보수도장|재도장|touch-?up", re.I)
+_COATING_RE = re.compile(r"phenolic\s*epoxy|coating(?!\s*상태)|paint(?!\s*상태)|painted|painting|도장(?!상태)|보수도장|재도장|touch-?up", re.I)
 _BLAST_ONLY_RE = re.compile(r"sand\s*blasting|sandblasting", re.I)
 _OVERLAY_RE = re.compile(r"육성\s*용접|육성\s*용접|육성용접|overlay|hardfacing|build[- ]?up\s*weld|erni-?cr-?3|er-?nicr-?3|용접보수|보수용접|erni-?cr-?3|er-?nicr-?3|용접보수|보수용접", re.I)
 _WELD_REPAIR_RE = re.compile(
-    r"seal\s*welding|seal-?weld|stitch\s*welding|weld\s*repair|repair\s*weld(?:ing)?|용접보수|보수용접|재\s*용접|재용접|결함\s*제거\s*후\s*용접|선형\s*결함\s*제거\s*후\s*용접|grinding\s*후\s*용접|용접\s*실시|육성\s*용접|용접\s*후\s*나사산|용접\s*후\s*.*가공|용접\s*후\s*.*탐상",
+    r"seal\s*weld(?:ing|ed)?|seal-?weld(?:ing|ed)?|stitch\s*weld(?:ing|ed)?|weld\s*repair(?:ed)?|repair\s*weld(?:ing|ed)?|weld\s*repaired|용접보수|보수용접|재\s*용접|재용접|결함\s*제거\s*후\s*용접|선형\s*결함\s*제거\s*후\s*용접|grinding\s*후\s*용접|ground\s*out|grind(?:ing)?\s*out|reweld(?:ed|ing)?|weld[- ]?built[- ]?up|built\s*up\s*with|deposit\s*welding|metal\s*plugg(?:ed|ing)|tig\s*weld(?:ing)?|용접\s*실시|육성\s*용접|용접\s*후\s*나사산|용접\s*후\s*.*가공|용접\s*후\s*.*탐상",
     re.I,
 )
 _SIMPLE_REPAIR_RE = re.compile(
-    r"보수|repair|grinding|결함\s*제거|defect\s*remov|patch|보강|재시공|시공|임시조치|box-?up|compound\s*sealing|lining\s*repair|보수\s*완료|plug\b|plugging|unplugging|stop\s*hole|막음\s*작업|막음\s*용접|복원\s*후\s*조립",
+    r"보수|부분\s*보수|부분보수|repair|repaired|reinforc(?:e|ed|ing)|recondition(?:ed|ing)?|rebuild|rebuilt|restor(?:e|ed|ation)?|machin(?:e|ed|ing)|lathe\s*machin(?:e|ed)|grinding|결함\s*제거|defect\s*remov|patch|patch-?up|보강|anchor\s*mesh|anchor\s*mesh\s*보강|recap(?:ed|ing)?|refractory\s*repair|ramming\s*refractory|mortar|재시공|시공|임시조치|box-?up|compound\s*sealing|lining\s*repair|lining\s*restor(?:e|ed|ation)?|concrete\s*lining|내화물\s*보수|concrete\s*repair|보수\s*완료|plug\b|plugging|unplugging|stop\s*hole|막음\s*작업|막음\s*용접|복원|복구|복원\s*후\s*조립",
     re.I,
 )
 _REPAIR_ACTION_RE = re.compile(
-    r"grinding|결함\s*제거|defect\s*remov|patch-?up|patch|box-?up|compound\s*sealing|보수\s*완료|보강함|보강\s*실시|재시공|시공하였음|plug\b|plugging|unplugging|stop\s*hole|막음\s*작업|막음\s*용접|repair(ed)?|보수\s*작업\s*실시",
+    r"grinding|결함\s*제거|부분\s*제거\s*후\s*보수|손상.*보수|defect\s*remov|patch-?up|patch|box-?up|compound\s*sealing|보수함|보수하였음|보수\s*실시|보수실시|부분\s*보수|부분보수|보수\s*완료|보강함|보강\s*실시|anchor\s*mesh\s*보강|reinforc(?:e|ed|ing)|recondition(?:ed|ing)?|restor(?:e|ed|ation)?|복원함|복원\s*하였음|복원\s*완료|복구함|복구\s*실시|machin(?:e|ed|ing)|lathe\s*machin(?:e|ed)|recap(?:ed|ing)?|ramming\s*refractory|mortar|재시공|시공하였음|plug\b|plugging|unplugging|stop\s*hole|막음\s*작업|막음\s*용접|repair(ed)?|repair\s*performed|보수\s*작업\s*실시|lining\s*repair|lining\s*restor(?:e|ed|ation)?|concrete\s*repair|concrete\s*lining",
     re.I,
 )
-_REPLACE_RE = re.compile(r"교체|replace|replaced|신규\s*제작|신규\s*교체|제작\s*후\s*교체|fabricated?.*replace|retube|retubing|교체\s*설치함|교체\s*완료|교체\s*완료함|교체\s*완료하였음", re.I)
+_REPLACE_RE = re.compile(r"교체|replace|replaced|replacement|renew(?:ed|al)?|newly\s*fabricated|prefabricated|reconditioned\s*with\s*new\s*one|replaced\s*with\s*new\s*ones|신규\s*제작|신규\s*교체|제작\s*후\s*교체|fabricated?.*replace|retube|retubed|retubing|re-?tubing|made\s+new|made\s+a\s+new|newly\s*installed|installed|교체\s*설치함|교체\s*완료|교체\s*완료함|교체\s*완료하였음", re.I)
 _ACTION_DONE_RE = re.compile(
-    r"교체함|교체\s*설치함|교체\s*하였음|교체\s*완료함|교체\s*완료하였음|교체됨|신규\s*교체|신규\s*제작|제작\s*후\s*교체|설치함|설치\s*완료|실시함|실시하였음|실시\s*완료|작업함|작업\s*실시|보수\s*완료|보강함|보강\s*실시|용접\s*실시|blind\s*처리|by-?pass\s*시킴|재시공|시공하였음|repair(ed)?|replace(d)?|fabricated|coating\s*실시|도장\s*실시|완료함",
+    r"교체함|교체\s*설치함|교체\s*하였음|교체\s*완료함|교체\s*완료하였음|교체됨|신규\s*교체|신규\s*제작|제작\s*후\s*교체|설치함|설치\s*하였음|설치\s*완료|실시함|실시하였음|실시\s*완료|작업함|작업\s*실시|보수함|보수하였음|보수\s*실시|보수실시|부분\s*보수|부분보수|보수\s*완료|보강함|보강\s*실시|복원함|복원\s*하였음|복원\s*완료|복구함|재조립|재\s*조립|조립\s*완료|결합\s*작업\s*실시|reinforc(?:e|ed|ing)|recondition(?:ed|ing)?|restor(?:e|ed|ation)?|machin(?:e|ed|ing)|lathe\s*machin(?:e|ed)|renew(?:ed|al)?|prefabricated|newly\s*fabricated|replaced\s*with\s*new\s*ones|reassembl(?:ed|y)|assembled|installed|modified|용접\s*실시|blind\s*처리|by-?pass\s*시킴|재시공|시공하였음|repair(ed)?|repair\s*performed|replace(d)?|fabricated|coating\s*실시|painted|도장\s*실시|완료함|reweld(?:ed|ing)?|weld\s*repaired|seal\s*weld(?:ed|ing)?|weld[- ]?built[- ]?up|built\s*up\s*with|ground\s*out|deposit\s*welding|metal\s*plugg(?:ed|ing)",
     re.I,
 )
 _AIR_COOLER_PLUG_SERVICE_RE = re.compile(r"air\s*cooler\s*plug|a/?c\s*plug|plug\b", re.I)
 _AIR_COOLER_PLUG_NONREPAIR_RE = re.compile(r"분해|조립|해체|탈거|재조립|opening|closing|open|close", re.I)
-_RECOMMEND_ONLY_RE = re.compile(r"요망|요함|필요|권고|차기\s*TA|다음\s*TA|recommend|검토|적용\s*검토|교체할\s*경우|실시하여야|실시\s*하여야|하여야\s*겠음|해야\s*겠음", re.I)
+_RECOMMEND_ONLY_RE = re.compile(r"요망|요함|필요|권고|차기\s*T/?A|다음\s*T/?A|향후|추후|recommend(?:ed)?|recommended\s+that|it\s+is\s+recommended|strongly\s+recommended|will\s+be\s+closely\s+inspected|should\s+be|shall\s+be|must\s+be|need(?:s)?\s+(?:to\s+be\s+|to\s+)?(?:repair(?:ed)?|replace(?:d)?|renew(?:ed)?|install(?:ed)?|weld(?:ed)?)|requires?\s+(?:repair|replacement|renewal|installation)|planned\s+for|planned\s+at|scheduled\s+for|scheduled\s+to|next\s*(?:shutdown|turnaround|t\s*&\s*i)|subsequent\s*t\s*&\s*i|검토|적용\s*검토|교체할\s*경우|실시하여야|실시\s*하여야|하여야\s*겠음|해야\s*겠음|토록\s*하여야겠음", re.I)
+_FUTURE_SCOPE_RE = re.compile(
+    r"차기\s*T/?A|다음\s*T/?A|향후|추후|recommend(?:ed)?|recommended\s+that|it\s+is\s+recommended|strongly\s+recommended|should\s+be|shall\s+be|must\s+be|need(?:s)?\s+(?:to\s+be\s+|to\s+)?(?:repair(?:ed)?|replace(?:d)?|renew(?:ed)?|install(?:ed)?|weld(?:ed)?)|requires?\s+(?:repair|replacement|renewal|installation)|planned\s+for|planned\s+at|scheduled\s+for|scheduled\s+to|during\s+the\s+next|at\s+next\s*(?:s\.?d\.?|shutdown|turnaround|t\s*&\s*i)|next\s*(?:s\.?d\.?|shutdown|turnaround|t\s*&\s*i)|subsequent\s*t\s*&\s*i|will\s+be\s+closely\s+inspected",
+    re.I,
+)
+_RECOMMEND_CONTEXT_EXEMPT_RE = re.compile(r"as\s+per\s+.*recommendation|according\s+to\s+.*recommendation|권고에\s*따라", re.I)
+_NEGATED_ACTION_RE = re.compile(
+    r"(?:"
+    r"(?:보수|repair|교체|replace|도장|paint|coating|용접|weld|설치|install|가공|machin(?:e|ed)|보강|reinforc(?:e|ed)|재시공|시공).{0,40}?"
+    r"(?:하지\s*않(?:음|았음)|미실시|실시하지\s*않(?:음|았음)|안\s*함|없음|불필요)"
+    r"|보수\s*작업\s*없[이이]|보수작업\s*없이|보수하지\s*않고|용접\s*보수하지\s*않고|교체하지\s*않고"
+    r"|without\s+repair|without\s+replacement|not\s+performed"
+    r"|별도\s*보수작업\s*실시하지\s*않음"
+    r"|보수\s*작업은\s*실시하지\s*않음"
+    r"|\bno\s+repair(?:\s+was\s+made)?\b"
+    r"|\brepair\s+was\s+not\s+made\b"
+    r"|\bnot\s+repair(?:ed)?\b"
+    r"|\bneed\s+not\s+repair\b"
+    r"|\bno\s+need\s+to\s+repair\b"
+    r"|\bnot\s+required(?:\s+to\s+repair)?\b"
+    r"|\bit\s+was\s+decided\s+that\s+.*?not\s+repair\b"
+    r"|\b(?:repair|renewal|replacement)\s+of\b.{0,80}?\b(?:unnecessary|not\s+necessary|unneeded|unrequired)\b"
+    r"|\b(?:repair|replace|renew|install)\b.{0,40}?\b(?:unnecessary|not\s+necessary|unneeded|unrequired)\b"
+    r"|\b(?:unnecessary|not\s+necessary|unneeded|unrequired)\s+to\s+(?:repair|replace|renew|install)\b"
+    r"|\b(?:were|was|is|are)\s+unnecessary\b"
+    r")",
+    re.I,
+)
+_COATING_DAMAGE_ONLY_RE = re.compile(r"도장\s*손상|coating\s*damage|paint\s*damage|도장\s*박리", re.I)
 _TOOLING_RE = re.compile(r"유압\s*토크\s*렌치|토크\s*렌치|hydraulic\s*torque\s*wrench|torque\s*wrench", re.I)
 _INSPECTION_ONLY_RE = re.compile(r"\bMT\b|\bPT\b|\bUT\b|검사|점검|확인|power\s*brush|power\s*brushing|세척|clean|청소|수압\s*테스트|RT/?수압\s*테스트|액체침투탐상|침투탐상|자분탐상", re.I)
 _HISTORY_PAREN_RE = re.compile(r"\([^)]*(20\d{2})년[^)]*\)", re.I)
+_TRAILING_HISTORY_NOTE_RE = re.compile(r"(?:[‘'`]?\d{2}년|(?:19|20)\d{2}년).{0,220}$", re.I)
 _HEADER_TRASH_RE = re.compile(
     r"검사사항\s*\(초기/상세\)|구분\s*Tube\s*Shell|초기\s*상태|상세\s*검사|표면\s*상태|도장\s*상태|^Line\s*no\.?$|^Nozzle\s*No\.?$",
     re.I,
 )
 _BULLET_SPLIT_RE = re.compile(
-    r"(?:\n+|\\n+|\s+(?=\(\d+\))|\s+(?=-\s)|\s+(?=<[^>]+>)|(?<=[다음요권검])\s+(?=차기\s*TA|다음\s*TA|권고|요망|요함|필요|검토))"
+    r"(?:\n+|\\n+|\s+(?=\(\d+\))|\s+(?=-\s)|\s+(?=<[^>]+>)|[,:;]\s*(?=차기\s*T/?A|차기\s*정기|다음\s*T/?A|향후|추후|권고|요망|요함|필요|검토|예정|바람직|recommended|should\s+be|shall\s+be|must\s+be|planned\s+for|planned\s+at|scheduled\s+for|scheduled\s+to|next\s*(?:shutdown|turnaround|t\s*&\s*i))|\s+(?=차기\s*T/?A|차기\s*정기|다음\s*T/?A|향후|추후|권고|요망|요함|필요|검토|예정|바람직|recommended|should\s+be|shall\s+be|must\s+be|planned\s+for|planned\s+at|scheduled\s+for|scheduled\s+to|next\s*(?:shutdown|turnaround|t\s*&\s*i)))"
+)
+_HISTORICAL_ANCHOR_RE = re.compile(
+    r"(?:[‘'`]?(?:\d{2}|(?:19|20)\d{2})년|지난|이전|전회|기존\s*TA|last\s+t\s*&\s*i|last\s+shutdown|previous\s+shutdown|previous\s+t\s*&\s*i|at\s+last\s+t\s*&\s*i|during\s+(?:19|20)\d{2}\s*t\s*&\s*i)",
+    re.I,
+)
+_CURRENT_SCOPE_OVERRIDE_RE = re.compile(
+    r"금번|이번\s*TA|금번\s*조치사항|이번\s*조치사항|this\s+turnaround|this\s+shutdown|current\s+shutdown|current\s+turnaround",
+    re.I,
+)
+_FINDING_RE = re.compile(r"양호|이상없|상태\s*양호|확인(?:함|하였음|되었음)?|good\s+condition|found|confirmed|observed|사용\s*가능|usable|acceptable", re.I)
+_CURRENT_ACTION_CUE_RE = re.compile(
+    r"금번|이번\s*TA|금번\s*조치사항|이번\s*조치사항|this\s+turnaround|this\s+shutdown|current\s+shutdown|current\s+turnaround|교체함|교체\s*하였음|교체\s*설치함|교체\s*실시|설치함|설치\s*완료|신규\s*설치|신규설치|보수함|보수\s*완료|복원\s*하였음|복원\s*완료|재조립|재\s*조립|replaced|installed|repaired|repair\s*performed|modified|reassembl(?:ed|y)|assembled|renewed|retubed",
+    re.I,
+)
+_ACTION_SIGNAL_RE = re.compile(
+    r"교체(?:\s*설치)?(?:함|하였음|완료|실시)?|설치(?:함|하였음|완료)?|신규\s*설치|신규설치|보수(?:함|하였음|완료|실시)?|복원(?:함|하였음|완료)?|복구(?:함|실시)?|재조립|재\s*조립|결합\s*작업\s*실시|신규\s*시공|replaced|installed|repaired|repair\s*performed|renewed|retubed|retubing|modified|reassembl(?:ed|y)|assembled|reweld(?:ed|ing)?|seal\s*weld(?:ed|ing)?|weld\s*repaired|weld[- ]?built[- ]?up|metal\s*plugg(?:ed|ing)|ground\s*out|deposit\s*welding",
+    re.I,
+)
+_RECOMMEND_TAIL_TRIGGER_RE = re.compile(
+    r"(?:\(|\[)?(?:차기교체|차기\s*T/?A|다음\s*T/?A|향후|추후|권고|요망|요함|필요|검토|예정|바람직|recommended|recommend(?:\s+that)?|we\s+recommend|should\s+be|shall\s+be|must\s+be|need(?:s)?\s+(?:to\s+be\s+|to\s+)?(?:repair(?:ed)?|replace(?:d)?|renew(?:ed)?|install(?:ed)?|weld(?:ed)?)|requires?\s+(?:repair|replacement|renewal|installation)|planned\s+for|planned\s+at|scheduled\s+for|scheduled\s+to|during\s+the\s+next|at\s+next\s*(?:s\.?d\.?|shutdown|turnaround|t\s*&\s*i)|next\s*(?:s\.?d\.?|shutdown|turnaround|t\s*&\s*i)|subsequent\s*t\s*&\s*i)",
+    re.I,
+)
+_NEGATIVE_TAIL_TRIGGER_RE = re.compile(
+    r"(?:실시하지\s*않음|미실시|조치하지\s*않음|교체하지\s*않음|보수하지\s*않음|불필요|without\s+repair|without\s+replacement|not\s+performed|no\s+repair|not\s+required(?:\s+to\s+repair)?|unnecessary|not\s+necessary|unneeded|unrequired)",
+    re.I,
+)
+_FINDING_PREFIX_RE = re.compile(
+    r"(?:검사\s*결과|점검\s*결과|상세\s*검사\s*결과|육안검사\s*결과|판단(?:하고|하여)?|판단되며|특이사항\s*없이|이상\s*없이|사용\s*가능(?:한\s*것으로)?\s*판단(?:하고|하여)?|in\s+good\s+condition|generally\s+in\s+good\s+condition)",
+    re.I,
 )
 
 
@@ -92,7 +150,7 @@ def _has_explicit_done(text: str) -> bool:
     if not t:
         return False
     return bool(re.search(
-        r"교체함|교체\s*하였음|교체\s*설치함|교체\s*완료|교체\s*실시|설치함|설치\s*완료|실시함|완료함|보수\s*완료|용접보수|보수용접|재\s*용접|재용접|육성\s*용접|overlay|hardfacing|weld\s*repair|repair\s*weld|replace(d)?|retube|bundle\s*사전\s*신규\s*제작\s*및\s*교체|bundle\s*사전\s*제작\s*및\s*교체|신규\s*bundle\s*로\s*교체함|신규\s*bundle\s*제작\s*되어\s*교체|신규\s*용기\s*제작\s*후\s*교체|제작\s*후\s*교체\s*실시"
+        r"교체함|교체\s*하였음|교체\s*설치함|교체\s*설치하였음|교체\s*완료|교체\s*실시|설치함|설치\s*하였음|설치\s*완료|실시함|완료함|보수\s*완료|복원\s*하였음|복원\s*완료|용접보수|보수용접|재\s*용접|재용접|weld\s*repair|repair\s*weld|weld\s*repaired|reweld(?:ed|ing)?|seal\s*weld(?:ed|ing)?|weld[- ]?built[- ]?up|built\s*up\s*with|ground\s*out|deposit\s*welding|metal\s*plugg(?:ed|ing)|replace(d)?|installed|reassembl(?:ed|y)|assembled|modified|made\s+new|retube|retubed|retubing|re-?tubing|strength\s*welding|확관|bundle\s*사전\s*신규\s*제작\s*및\s*교체|bundle\s*사전\s*제작\s*및\s*교체|신규\s*bundle\s*로\s*교체함|신규\s*bundle\s*제작\s*되어\s*교체|신규\s*용기\s*제작\s*후\s*교체|제작\s*후\s*교체\s*실시"
         , t, re.I))
 
 
@@ -106,16 +164,96 @@ def _looks_like_recommendation(text: str) -> bool:
         return False
     if _is_negative_or_empty(t):
         return False
-    if re.search(r"차기\s*TA|다음\s*TA|향후|추후|권고|요망|요함|검토|예정|필요|실시하여야|실시\s*하여야|교체할\s*경우", t, re.I):
-        if not _has_explicit_done(t):
+    has_done = _has_explicit_done(t)
+    has_recommend = bool(_RECOMMEND_ONLY_RE.search(t))
+    has_future = bool(_FUTURE_SCOPE_RE.search(t)) and not _RECOMMEND_CONTEXT_EXEMPT_RE.search(t)
+    if _RECOMMEND_CONTEXT_EXEMPT_RE.search(t) and has_done and not has_future:
+        return False
+    if has_future and re.search(r"교체|보수|설치|제작|육성용접|overlay|repair|replace|renew|install|retub|weld", t, re.I):
+        if not has_done:
             return True
-        if re.search(r"(교체|보수|설치|제작).*(필요|요망|검토|예정)", t, re.I):
+        if re.search(r"recommend(?:ed)?|should\s+be|shall\s+be|must\s+be|planned\s+for|planned\s+at|scheduled\s+for|scheduled\s+to|next\s*(?:s\.?d\.?|shutdown|turnaround|t\s*&\s*i)|subsequent\s*t\s*&\s*i|차기\s*T/?A|다음\s*T/?A|향후|추후", t, re.I):
+            return True
+    if has_recommend:
+        if not re.search(r"실시함|실시하였음|완료함|완료하였음|보수함|보수\s*완료|복원\s*하였음|복원\s*완료|교체함|교체\s*설치함|설치함|설치\s*완료|repaired|repair\s*performed|replaced|installed|reweld(?:ed|ing)?|seal\s*weld(?:ed|ing)?|weld\s*repaired|metal\s*plugg(?:ed|ing)|reassembl(?:ed|y)", t, re.I):
+            return True
+        if re.search(r"(교체|보수|설치|제작|육성용접|overlay|repair|replace|renew|install|retub).*(필요|요망|검토|예정)", t, re.I):
             return True
     return False
 
 
 def _normalize_text(text: str) -> str:
     return re.sub(r"\s+", " ", str(text or "")).strip()
+
+
+def _has_action_signal(text: str) -> bool:
+    t = _normalize_text(text)
+    if not t:
+        return False
+    return bool(_ACTION_SIGNAL_RE.search(t) or _REPAIR_ACTION_RE.search(t) or _WELD_REPAIR_RE.search(t) or (_REPLACE_RE.search(t) and _CURRENT_ACTION_CUE_RE.search(t)))
+
+
+def _split_negative_local_scopes(text: str) -> List[str]:
+    t = _normalize_text(text)
+    if not t:
+        return []
+    t = re.sub(r"(?i)\b(?:but|however|while|whereas)\b", " ||SPLIT|| ", t)
+    t = re.sub(r"다만|반면", " ||SPLIT|| ", t)
+    t = re.sub(r"(?i)(?:검사\s*결과에\s*따라|점검\s*결과에\s*따라|판단하고|판단하여)", lambda m: f"{m.group(0)} ||SPLIT||", t)
+    parts = re.split(r"\s*(?:\|\|SPLIT\|\||;)\s*", t)
+    return [p.strip(" -/,:;") for p in parts if _normalize_text(p)]
+
+
+def _trim_recommendation_tail(text: str) -> str:
+    t = _normalize_text(text)
+    if not t:
+        return ""
+    if _RECOMMEND_CONTEXT_EXEMPT_RE.search(t):
+        return t
+    t = re.sub(r"\((?:차기교체|차기\s*T/?A[^)]*|다음\s*T/?A[^)]*|향후[^)]*|추후[^)]*|권고[^)]*|필요[^)]*|바람직[^)]*|recommended[^)]*|should\s+be[^)]*|shall\s+be[^)]*|must\s+be[^)]*|planned[^)]*|scheduled[^)]*|next\s*(?:s\.?d\.?|shutdown|turnaround|t\s*&\s*i)[^)]*)\)", " ", t, flags=re.I)
+    m = _RECOMMEND_TAIL_TRIGGER_RE.search(t)
+    if not m:
+        return _normalize_text(t)
+    head = _normalize_text(t[:m.start()])
+    if head and (_has_explicit_done(head) or _has_action_signal(head)):
+        return head
+    return _normalize_text(t)
+
+
+def _trim_noncurrent_tail(text: str) -> str:
+    t = _normalize_text(text)
+    if not t:
+        return ""
+    t = _trim_recommendation_tail(t)
+    if not t:
+        return ""
+    if _RECOMMEND_CONTEXT_EXEMPT_RE.search(t):
+        return t
+
+    neg_m = _NEGATIVE_TAIL_TRIGGER_RE.search(t)
+    hist_m = _HISTORICAL_ANCHOR_RE.search(t)
+
+    if neg_m and neg_m.start() > 0:
+        head = _normalize_text(t[:neg_m.start()])
+        if head and _has_explicit_done(head):
+            return head
+
+    if hist_m and hist_m.start() > 0:
+        head = _normalize_text(t[:hist_m.start()])
+        if head and (_has_explicit_done(head) or _has_action_signal(head)):
+            return head
+
+    return t
+
+
+def _is_finding_recommendation_only(text: str) -> bool:
+    t = _normalize_text(text)
+    if not t:
+        return False
+    has_finding = bool(_FINDING_RE.search(t))
+    has_recommend = bool(_FUTURE_SCOPE_RE.search(t) or re.search(r"바람직|차기교체", t, re.I))
+    has_action = bool(_ACTION_DONE_RE.search(t) or _REPAIR_ACTION_RE.search(t) or _WELD_REPAIR_RE.search(t) or _REPLACE_RE.search(t))
+    return has_finding and has_recommend and not has_action
 
 
 def _unique_keep_order(items: Iterable[str]) -> List[str]:
@@ -151,6 +289,11 @@ def _clean_clause_text(text: str) -> str:
     t = re.sub(r"\b[0-9]{2}[A-Z]-\d{3,4}[A-Z]?\b", " ", t)
     t = re.sub(r"\b(?:Crude Column|HK Stripper|Stabilizer|Desalter|Exchanger|Heater|Receiver|Dryer|Drum)\b", lambda m: m.group(0) if len(m.group(0).split()) > 2 else " ", t, flags=re.I)
     t = re.sub(r"\s+/\s+", ". ", t)
+    t = re.sub(r"(?i)(?<=하였음)\s*(?=(?:차기|향후|추후|다음|권고))", ". ", t)
+    t = re.sub(r"(?i)(?<=완료함)\s*(?=(?:차기|향후|추후|다음|권고))", ". ", t)
+    t = re.sub(r"(?i)(?<=installed)\s*(?=(?:recommended|should\s+be|shall\s+be|next\s*(?:shutdown|turnaround|t\s*&\s*i)))", ". ", t)
+    t = re.sub(r"(?i)(?<=repaired)\s*(?=(?:recommended|should\s+be|shall\s+be|next\s*(?:shutdown|turnaround|t\s*&\s*i)))", ". ", t)
+    t = _TRAILING_HISTORY_NOTE_RE.sub(" ", t)
     t = re.sub(r"\s+", " ", t)
     return t.strip(" -/,:;")
 
@@ -164,8 +307,11 @@ def _split_clauses(text: str) -> List[str]:
     first_pass = [p for p in _BULLET_SPLIT_RE.split(raw) if _normalize_text(p)]
     parts: List[str] = []
     for part in first_pass:
-        sub_parts = re.split(r"(?<=[\.!?다함음요])\s+(?=(?:\(?\d+\)|[A-Z#0-9\"“]|Nozzle|Tray|Shell|Top|Bottom|내부|외부|차기\s*TA|다음\s*TA|권고|검토))", part)
+        sub_parts = re.split(r"(?<=[\.!?다함음요])\s+(?=(?:\(?\d+\)|[A-Z#0-9\"“]|Nozzle|Tray|Shell|Top|Bottom|내부|외부|차기\s*TA|다음\s*TA|권고|검토|[‘'`]?(?:19|20)?\d{2}년))", part)
+        split_more = []
         for sub in sub_parts:
+            split_more.extend(re.split(r"\s+(?=(?:but|however|다만|또한|차기\s*T/?A|차기\s*정기|다음\s*T/?A|향후|추후|권고|recommended|recommend\s+that|we\s+recommend|should\s+be|shall\s+be|must\s+be|planned\s+for|planned\s+at|scheduled\s+for|scheduled\s+to|next\s*(?:s\.?d\.?|shutdown|turnaround|t\s*&\s*i)|subsequent\s*t\s*&\s*i))", sub, flags=re.I))
+        for sub in split_more:
             sub = _normalize_text(sub)
             if not sub:
                 continue
@@ -179,19 +325,61 @@ def _is_recommendation_only(text: str) -> bool:
 
 
 def _is_historical_only(text: str, report_year: int) -> bool:
-    years = {int(y) for y in re.findall(r"(20\d{2})", str(text or ""))}
-    return bool(years and all(y != int(report_year) for y in years))
+    t = _normalize_text(text)
+    years = {int(y) for y in re.findall(r"((?:19|20)\d{2})", t)}
+    for y2 in re.findall(r"[‘\'`](\d{2})년", t):
+        yy = int(y2)
+        years.add(2000 + yy if yy <= 30 else 1900 + yy)
+    has_hist_anchor = bool(_HISTORICAL_ANCHOR_RE.search(t))
+    has_current_override = bool(_CURRENT_SCOPE_OVERRIDE_RE.search(t) or _CURRENT_ACTION_CUE_RE.search(t))
+    if not years and not has_hist_anchor:
+        return False
+    if any(y == int(report_year) for y in years):
+        return False
+    if _has_explicit_done(t) and re.search(r"에\s*따라|according\s+to|based\s+on|per\s+.*(?:msr|inspection|result)|사전에\s*준비|재조립|교체하였|설치하였|replaced|installed|modified", t, re.I):
+        return False
+    if has_hist_anchor and not has_current_override:
+        if re.match(r"^(?:\(?\s*)?(?:[‘\'`]?(?:\d{2}|(?:19|20)\d{2})년|지난|이전|전회|기존\s*TA|last\s+t\s*&\s*i|last\s+shutdown|previous\s+shutdown|previous\s+t\s*&\s*i)", t, re.I):
+            return True
+        if len(t) <= 160 and re.search(r"(?:교체|보수|용접|replace|replaced|repair(?:ed)?|retube|retubing|renewed)", t, re.I):
+            return True
+    if re.match(r"^(?:[‘\'`]\d{2}년|(?:19|20)\d{2}년)", t) and len(t) <= 120:
+        return True
+    if re.fullmatch(r".{0,120}?(?:교체|보수|용접|replace|replaced|repair(?:ed)?|retube|retubing|renewed).{0,40}", t, re.I):
+        return True
+    return False
+
+
+def _strip_inline_historical_segments(text: str, report_year: int) -> str:
+    t = _normalize_text(text)
+    if not t:
+        return ""
+    parts = re.split(r"(?<=[\.;|])\s+", t)
+    kept: List[str] = []
+    for part in parts:
+        p = _normalize_text(part.strip(" -/,:;"))
+        if not p:
+            continue
+        if _is_historical_only(p, report_year):
+            continue
+        kept.append(p)
+    return _normalize_text(" | ".join(kept)) if kept else t
 
 
 def categorize_text(text: str, action_type: str = "") -> List[str]:
     combined = _normalize_text(f"{action_type} {text}")
+    combined = _trim_noncurrent_tail(combined)
     if not combined:
         return []
-    if _INTERNAL_EXCLUDE_RE.search(combined):
+    if _INTERNAL_EXCLUDE_RE.search(combined) and not (_WELD_REPAIR_RE.search(combined) or _SIMPLE_REPAIR_RE.search(combined)):
         return []
     if _is_negative_or_empty(combined):
         return []
+    if _is_finding_recommendation_only(combined):
+        return []
     if _is_recommendation_only(combined):
+        return []
+    if _NEGATED_ACTION_RE.search(combined) and not _has_explicit_done(combined) and not (re.search(r"bundle\s+.*replaced|bundle\s+.*교체|tube\s+bundle\s+.*교체|신규\s*제작\s*후\s*교체|made\s+new\s+.*nozzle|new\s*nozzle|new\s*nozzles", combined, re.I) and _REPLACE_RE.search(combined)):
         return []
     if (
         _AIR_COOLER_PLUG_SERVICE_RE.search(combined)
@@ -205,7 +393,7 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
         return []
     if _BLAST_ONLY_RE.search(combined) and not _COATING_RE.search(combined):
         return []
-    if _INSPECTION_ONLY_RE.search(combined) and not (_REPLACE_RE.search(combined) or _COATING_RE.search(combined) or _OVERLAY_RE.search(combined) or _SIMPLE_REPAIR_RE.search(combined)):
+    if _INSPECTION_ONLY_RE.search(combined) and not (_REPLACE_RE.search(combined) or _COATING_RE.search(combined) or _OVERLAY_RE.search(combined) or _SIMPLE_REPAIR_RE.search(combined) or _WELD_REPAIR_RE.search(combined) or _ACTION_DONE_RE.search(combined)):
         return []
 
     has_replace = bool(_REPLACE_RE.search(combined)) or "replace" in action_type.lower()
@@ -227,8 +415,14 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
             return ["단순 보수"]
         return []
 
+    # 도장 손상/박리 같은 finding-only 문장은 실제 도장 작업이 없는 한 분류하지 않는다.
+    if has_coating and _COATING_DAMAGE_ONLY_RE.search(combined) and not re.search(r"보수도장|재도장|도장\s*실시|painted|painting|coating\s*실시|coat(?:ed|ing)", combined, re.I):
+        return []
+
     # 도장은 교체/보수 문장이 섞이지 않은 경우에만 단독 분류
     if has_coating and not has_replace and not has_simple and not has_overlay:
+        if not re.search(r"보수도장|재도장|도장\s*실시|painted|painting|coating\s*실시|coat(?:ed|ing)", combined, re.I):
+            return []
         return ["도장"]
 
     # 교체는 nozzle > internal > assembly 우선순위로 단일 분류
@@ -236,7 +430,7 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
         if _looks_like_recommendation(combined) and not has_done:
             return []
         if has_nozzle:
-            if not has_done:
+            if not has_done and not re.search(r"made\s+new|newly\s*installed|installed|fabricated|new\s*nozzle|new\s*nozzles|신규\s*설치|신규\s*제작", combined, re.I):
                 return []
             if re.search(r"mint|ont|pitting|부식|감육|두께감소", combined, re.I) and not re.search(r"신규|제작|설치|제거\s*후|size-?up|기존", combined, re.I):
                 return []
@@ -246,7 +440,7 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
                 return []
             return ["단순 내부 구성품 교체"]
         if (has_assembly_obj or has_assembly_ctx) and not has_small_part and not has_internal and not has_nozzle:
-            if not has_done and not has_assembly_ctx:
+            if not has_done and not has_assembly_ctx and not re.search(r"retube(?:d|ing)?|re-?tubing|made\s+new|fabricated|installed|reassembl(?:ed|y)|strength\s*welding|튜브\s*교체|번들\s*교체|부분\s*retubing", combined, re.I):
                 return []
             if _looks_like_recommendation(combined) and not has_done:
                 return []
@@ -254,14 +448,21 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
                 return []
             return ["Assembly 교체"]
 
+    if has_internal and not has_small_part and has_done and re.search(r"재조립|재\s*조립|조립\s*완료|결합\s*작업\s*실시|설치|install(?:ed)?|reassembl(?:ed|y)|assembled|modified", combined, re.I):
+        return ["단순 내부 구성품 교체"]
+
     if has_coating:
         return ["도장"]
     if has_overlay or has_weld_repair:
-        if not (has_done or re.search(r"육성용접|overlay|seal\s*welding|seal-?weld|재\s*용접|재용접|용접보수|보수용접|weld\s*repair|repair\s*weld", combined, re.I)):
+        if _looks_like_recommendation(combined) and not has_done:
+            return []
+        if not (has_done or re.search(r"육성용접|overlay|erni-?cr-?3|er-?nicr-?3|strength\s*welding|seal\s*weld(?:ing|ed)?|seal-?weld(?:ing|ed)?|재\s*용접|재용접|용접보수|보수용접|weld\s*repair(?:ed)?|repair\s*weld(?:ing|ed)?|weld\s*repaired|reweld(?:ed|ing)?|weld[- ]?built[- ]?up|built\s*up\s*with|ground\s*out|deposit\s*welding|metal\s*plugg(?:ed|ing)", combined, re.I)):
             return []
         return ["육성용접"]
     if has_simple:
         if _RECOMMEND_ONLY_RE.search(combined) and not has_done:
+            return []
+        if re.search(r"보수작업\s*없이|without\s+repair|보수하지\s*않고|용접\s*보수하지\s*않고", combined, re.I):
             return []
         if not (_REPAIR_ACTION_RE.search(combined) or has_done):
             return []
@@ -287,27 +488,37 @@ def _extract_action_items(event) -> List[dict]:
     loc = _normalize_text(getattr(event, "finding_location", "") or "")
     for raw in (getattr(event, "action_sentences", []) or []):
         text = _strip_other_year_history(raw, year)
+        text = _strip_inline_historical_segments(text, year)
         for clause in _split_clauses(text):
-            clause = _clean_clause_text(clause)
-            clause = _normalize_text(clause)
-            if not clause or _is_negative_or_empty(clause):
-                continue
-            if _is_historical_only(clause, year):
-                continue
-            if _is_recommendation_only(clause):
-                continue
-            if len(clause) < 10 and not re.search(r"교체|보수|용접|도장|coating|replace|repair|plug", clause, re.I):
-                continue
-            if re.fullmatch(r"(?:LL1|LL2|W|D5|C3|C4|M3|T1/T2|Crude|RC Ex\.?|O/H)\.?", clause, re.I):
-                continue
-            cats = categorize_text(clause, "")
-            for cat in cats:
-                items.append({
-                    "year": year,
-                    "category": cat,
-                    "text": clause,
-                    "location": loc,
-                })
+            local_scopes = _split_negative_local_scopes(clause) or [clause]
+            for local_clause in local_scopes:
+                local_clause = _trim_noncurrent_tail(local_clause)
+                local_clause = _clean_clause_text(local_clause)
+                local_clause = _normalize_text(local_clause)
+                if not local_clause or _is_negative_or_empty(local_clause):
+                    continue
+                if _FINDING_PREFIX_RE.search(local_clause) and _RECOMMEND_TAIL_TRIGGER_RE.search(local_clause) and not _has_action_signal(local_clause):
+                    continue
+                if _is_finding_recommendation_only(local_clause):
+                    continue
+                if _NEGATED_ACTION_RE.search(local_clause) and not _has_explicit_done(local_clause):
+                    continue
+                if _is_historical_only(local_clause, year):
+                    continue
+                if _is_recommendation_only(local_clause):
+                    continue
+                if len(local_clause) < 10 and not re.search(r"교체|보수|용접|도장|coating|replace|repair|plug", local_clause, re.I):
+                    continue
+                if re.fullmatch(r"(?:LL1|LL2|W|D5|C3|C4|M3|T1/T2|Crude|RC Ex\.?|O/H)\.?", local_clause, re.I):
+                    continue
+                cats = categorize_text(local_clause, "")
+                for cat in cats:
+                    items.append({
+                        "year": year,
+                        "category": cat,
+                        "text": local_clause,
+                        "location": loc,
+                    })
     return _unique_action_items(items)
 
 
