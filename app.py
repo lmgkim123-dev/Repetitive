@@ -10,13 +10,19 @@ from typing import Iterable
 import pandas as pd
 import streamlit as st
 
-from src.exporter import export_excel
+from src.exporter import export_dataframes, export_excel
 from src.pipeline import run_pipeline_v6
-from src.piping_repeat_builder import (
-    build_piping_repeat_report_dataframe,
-    build_piping_summary_sheet,
-    load_piping_replacement_occurrences,
-)
+
+try:
+    from src.piping_repeat_builder import (
+        build_piping_repeat_report_dataframe,
+        build_piping_summary_sheet,
+        load_piping_replacement_occurrences,
+    )
+except ModuleNotFoundError:
+    build_piping_repeat_report_dataframe = None
+    build_piping_summary_sheet = None
+    load_piping_replacement_occurrences = None
 from src.task_builder import (
     CATEGORY_ORDER,
     build_category_extract_dataframe,
@@ -152,10 +158,17 @@ def filter_related_objects(filtered_task_df: pd.DataFrame, repeat_cases: list, a
     return filtered_cases, filtered_events
 
 
-def make_fixed_excel_bytes(task_df: pd.DataFrame, repeat_cases: list, all_events: list, filename_prefix: str) -> tuple[bytes, str]:
+def make_fixed_excel_bytes(
+    task_df: pd.DataFrame,
+    repeat_cases: list,
+    all_events: list,
+    filename_prefix: str,
+    category_source_df: pd.DataFrame | None = None,
+    extra_sheets: dict[str, pd.DataFrame] | None = None,
+) -> tuple[bytes, str]:
     temp_dir = Path(tempfile.mkdtemp(prefix="repeat_task_export_"))
     output_path = temp_dir / f"{filename_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    export_excel(task_df, repeat_cases, all_events, output_path)
+    export_excel(task_df, repeat_cases, all_events, output_path, category_source_df=category_source_df, extra_sheets=extra_sheets)
     return output_path.read_bytes(), output_path.name
 
 
@@ -176,7 +189,14 @@ def run_fixed_analysis(files: list) -> None:
 
     repeat_task_df, repeat_cases, all_events, equipment_names = run_pipeline_v6(temp_dir, progress_callback=update_progress)
     overview_df = build_equipment_summary_dataframe(all_events)
-    full_excel_bytes, full_excel_name = make_fixed_excel_bytes(repeat_task_df, repeat_cases, all_events, "반복정비_고정장치_과제후보_v6")
+    full_excel_bytes, full_excel_name = make_fixed_excel_bytes(
+        overview_df,
+        repeat_cases,
+        all_events,
+        "반복정비_고정장치_전체결과_v6",
+        category_source_df=overview_df,
+        extra_sheets={"2회이상반복_과제후보": repeat_task_df},
+    )
 
     progress_bar.progress(100, text="완료")
     status_box.success("고정장치 분석 완료")
@@ -248,15 +268,22 @@ def filter_piping_excluded_by_lines(excluded_df: pd.DataFrame, lines: set[str], 
 def make_piping_excel_bytes(summary_df: pd.DataFrame, repeat_df: pd.DataFrame, occurrences_df: pd.DataFrame, excluded_df: pd.DataFrame, filename_prefix: str) -> tuple[bytes, str]:
     temp_dir = Path(tempfile.mkdtemp(prefix="repeat_piping_export_"))
     output_path = temp_dir / f"{filename_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-        summary_df.to_excel(writer, index=False, sheet_name="summary")
-        repeat_df.to_excel(writer, index=False, sheet_name="반복배관후보")
-        occurrences_df.to_excel(writer, index=False, sheet_name="occurrences")
-        excluded_df.to_excel(writer, index=False, sheet_name="excluded_review")
+    export_dataframes(
+        [
+            ("summary", summary_df),
+            ("반복배관후보", repeat_df),
+            ("occurrences", occurrences_df),
+            ("excluded_review", excluded_df),
+        ],
+        output_path,
+    )
     return output_path.read_bytes(), output_path.name
 
 
 def run_piping_analysis(history_file, trouble_file) -> None:
+    if not (build_piping_repeat_report_dataframe and build_piping_summary_sheet and load_piping_replacement_occurrences):
+        raise RuntimeError("배관 분석 모듈이 패키지에 포함되지 않았습니다. 이번 패치본은 고정장치 Streamlit 개선 중심으로 재패키징되었습니다.")
+
     status_box = st.empty()
     progress_bar = st.progress(0, text="분석 준비 중...")
     status_box.info("배관 반복 교체 이력 분석 중...")
@@ -450,7 +477,13 @@ if mode == "고정장치" and fixed_result:
     events_df = build_events_df(filtered_events)
     cases_df = build_cases_df(filtered_cases)
 
-    filtered_excel_bytes, filtered_excel_name = make_fixed_excel_bytes(filtered_task_df, filtered_cases, filtered_events, "반복정비_고정장치_필터결과_v6")
+    filtered_excel_bytes, filtered_excel_name = make_fixed_excel_bytes(
+        filtered_task_df,
+        filtered_cases,
+        filtered_events,
+        "반복정비_고정장치_필터결과_v6",
+        category_source_df=filtered_task_df,
+    )
 
     st.caption(f"현재 조건: {occurrence_option} / {', '.join(selected_categories) if selected_categories else '카테고리 없음'}")
     col_dl1, col_dl2 = st.columns(2)
