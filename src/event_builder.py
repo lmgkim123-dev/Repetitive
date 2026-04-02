@@ -19,11 +19,11 @@ from .schemas import MaintenanceEvent
 ACTION_CLUSTERS = {
     "weld_repair": [
         "육성용접", "육성 용접", "overlay", "hardfacing", "재용접", "용접보수", "용접 보수", "보수용접", "ER-NiCr3", "ErNiCr-3",
-        "weld repair", "repair welding", "seal welding", "seal-welding",
+        "weld repair", "repair welding", "seal welding", "seal-welding", "seal welded", "weld repaired", "rewelded", "ground out", "weld-built up", "built up with", "deposit welding", "metal plugged",
         "결함 제거 후 용접", "선형 결함 제거 후 용접", "grinding 후 용접", "stitch welding",
     ],
     "replace": [
-        "교체", "replace", "신규 제작", "신규교체", "신규 용기", "제작 후 교체",
+        "교체", "replace", "replaced", "replacement", "renewed", "prefabricated", "newly fabricated", "replaced with new ones", "신규 제작", "신규교체", "신규 용기", "제작 후 교체",
         "new vessel", "retube", "retubing", "spool 교체", "nozzle 교체", "bundle 교체", "신규 교체 실시", "bellows", "sleeve",
     ],
     "coating_repair": [
@@ -31,12 +31,12 @@ ACTION_CLUSTERS = {
         "phenolic epoxy", "coating 실시", "도장 실시", "touch-up",
     ],
     "plugging": ["plugging", "plug", "tube plug", "막음", "unplugging"],
-    "temporary_fix": ["임시조치", "box-up", "compound sealing", "clamp", "patch"],
+    "temporary_fix": ["임시조치", "box-up", "compound sealing", "clamp", "patch", "보수", "부분 보수", "부분보수", "lining repair", "lining restored", "concrete lining", "concrete repair", "repaired", "reinforced", "reconditioned", "restored", "restoration", "lathe machined", "machined", "recaping", "ramming refractory", "mortar", "anchor mesh"],
     "structural_repair": [
         "packing 교체", "tray 교체", "internal 교체", "distributor", "panel coil 교체", "panel coil", "coil 교체", "inner screen 교체", "outer screen 교체", "beam support 교체", "support channel 교체", "grating 교체", "panel coil 교체", "panel coil", "coil 교체", "inner screen 교체", "outer screen 교체", "beam support 교체", "support channel 교체", "grating 교체",
         "bubble cap", "baffle", "weir plate", "punch plate", "mesh 교체",
         "screen mesh 교체", "clip 교체", "entry horn", "tray cap", "riser pipe hat",
-        "tube support", "support 교체", "panel coil 교체", "panel coil", "coil 교체", "inner screen 교체", "outer screen 교체", "beam support 교체", "support channel 교체", "grating 교체", "panel coil 교체", "panel coil", "coil 교체", "inner screen 교체", "outer screen 교체", "beam support 교체", "support channel 교체", "grating 교체",
+        "tube support", "support 교체", "support casting", "hook casting", "roof casting", "tube hanger", "flexi-cap", "refractory", "panel coil 교체", "panel coil", "coil 교체", "inner screen 교체", "outer screen 교체", "beam support 교체", "support channel 교체", "grating 교체", "panel coil 교체", "panel coil", "coil 교체", "inner screen 교체", "outer screen 교체", "beam support 교체", "support channel 교체", "grating 교체",
     ],
 }
 
@@ -67,11 +67,12 @@ LOCATION_PATTERNS = {
 }
 
 _RECOM_RE = re.compile(
-    r"차기\s*ta|다음\s*ta|추후|향후|권고|recommend|next\s*ta|차기\s*검사|"
-    r"검사.*필요|교체.*요망|교체.*필요|교체할\s*경우|보수.*요함|보수.*필요|요망|실시\s*요함|필요함|적용\s*검토|정밀\s*두께\s*측정\s*필요",
+    r"차기\s*ta|다음\s*ta|추후|향후|권고|recommend|recommended|should\s+be|shall\s+be|next\s*(?:ta|shutdown|turnaround|t\s*&\s*i)|차기\s*검사|"
+    r"검사.*필요|교체.*요망|교체.*필요|교체할\s*경우|보수.*요함|보수.*필요|요망|실시\s*요함|필요함|적용\s*검토|정밀\s*두께\s*측정\s*필요|하여야겠음|토록\s*하여야겠음",
     re.I,
 )
-_RECOMMENDATION_ACTION_RE = re.compile(r"교체\s*요함|교체\s*필요|교체할\s*경우|적용\s*검토|차기|예정|요망", re.I)
+_RECOMMENDATION_ACTION_RE = re.compile(r"교체\s*요함|교체\s*필요|교체할\s*경우|적용\s*검토|차기|예정|요망|recommended|should\s+be|shall\s+be|next\s*(?:shutdown|turnaround|t\s*&\s*i)", re.I)
+_NEGATED_ACTION_RE = re.compile(r"(?:보수|repair|교체|replace|도장|paint|coating|용접|weld|설치|install|가공|machin(?:e|ed)|보강|reinforc(?:e|ed)|재시공|시공).{0,40}?(?:하지\s*않(?:음|았음)|미실시|실시하지\s*않(?:음|았음)|안\s*함|없음|불필요|별도\s*보수작업\s*실시하지\s*않음|보수\s*작업은\s*실시하지\s*않음|no\s+repair(?:\s+was\s+made)?|repair\s+was\s+not\s+made|not\s+repair(?:ed)?|not\s+repaired|need\s+not\s+repair|no\s+need\s+to\s+repair|not\s+required(?:\s+to\s+repair)?|it\s+was\s+decided\s+that\s+.*?not\s+repair)", re.I)
 _NOISE_RE = re.compile(
     r"^(?:\(?\d+\)?\s*)?(?:line\s*no\.?|nozzle\s*no\.?|"
     r"설계두께|최소허용두께|설계재질|부식여유|remaining thickness|"
@@ -91,7 +92,7 @@ _HEADER_LIKE_RE = re.compile(r"^[A-Z0-9\-() /\"”“.#]+$")
 _CONTINUATION_START_RE = re.compile(r"^(?:및|후|또는|발견되어|하여|하였으며|하고|실시|제거|교체|보수|검사|세척|또한|관련하여|차단을\s*위해|위하여)", re.I)
 _FRAGMENT_END_RE = re.compile(r"(?:Nozzle\s*No\.?|Line\s*No\.?|구분|상부|하부|위하여|위해|부분|부위|에서|후|및|,|:)\s*$", re.I)
 _DONE_RE = re.compile(
-    r"교체함|교체\s*설치함|교체\s*하였음|교체\s*완료함|교체\s*완료하였음|교체됨|신규\s*교체|신규\s*제작|제작\s*후\s*교체|설치함|설치\s*완료|실시함|실시하였음|실시\s*완료|작업함|작업\s*실시|보수\s*완료|보강함|보강\s*실시|용접\s*실시|용접\s*보수|재시공|시공하였음|repair(ed)?|replace(d)?|fabricated|도장\s*실시|coating\s*실시|완료함",
+    r"교체함|교체\s*설치함|교체\s*하였음|교체\s*완료함|교체\s*완료하였음|교체됨|신규\s*교체|신규\s*제작|제작\s*후\s*교체|설치함|설치\s*하였음|설치\s*완료|실시함|실시하였음|실시\s*완료|작업함|작업\s*실시|보수함|보수하였음|보수\s*실시|보수실시|부분\s*보수|부분보수|보수\s*완료|보강함|보강\s*실시|복원함|복원\s*하였음|복원\s*완료|reinforced|reconditioned|renewed|restored|restoration|machined|lathe\s*machined|prefabricated|용접\s*실시|용접\s*보수|재시공|시공하였음|repair(ed)?|repair\s*performed|replace(d)?|fabricated|painted|도장\s*실시|coating\s*실시|완료함|reweld(?:ed|ing)?|weld\s*repaired|seal\s*weld(?:ed|ing)?|weld[- ]?built[- ]?up|built\s*up\s*with|ground\s*out|deposit\s*welding|metal\s*plugg(?:ed|ing)",
     re.I,
 )
 _AIR_COOLER_PLUG_SERVICE_RE = re.compile(r"air\s*cooler\s*plug|a/?c\s*plug|plug\b", re.I)
@@ -105,21 +106,23 @@ _INTERNAL_EXCLUDE_RE = re.compile(r"충진물|\bfiller\b|filter\s*media|adsorben
 _SMALL_PART_ONLY_RE = re.compile(r"\bbolt\b|\bnut\b|\bgasket\b|washer|stud|pin|keeper", re.I)
 _NOZZLE_KEYWORD_RE = re.compile(r"nozzle|노즐|\bnzl\b|\belbow\b", re.I)
 _INTERNAL_OBJECT_RE = re.compile(
-    r"tray|chimney\s*tray|bubble\s*cap|downcomer|weir\s*plate|screen|inner\s*screen|outer\s*screen|mesh|clip|support\s*clip|packing|distributor|collector|baffle|demister|internal|entry\s*horn|riser\s*pipe\s*hat|punch\s*plate|panel\s*coil|new\s*coil|old\s*coil|coil\b|beam\s*support|support\s*channel|tube\s*support|corrosion\s*probe\s*assembly|probe\s*assembly|corrosion\s*probe|grating|flat\s*form|\bvalve\b",
+    r"tray|chimney\s*tray|bubble\s*cap|flexi\s*-?cap|downcomer|weir\s*plate|screen|inner\s*screen|outer\s*screen|mesh|clip|support\s*clip|packing|distributor|collector|baffle|demister|internal|entry\s*horn|riser\s*pipe\s*hat|punch\s*plate|panel\s*coil|new\s*coil|old\s*coil|coil\b|beam\s*support|support\s*channel|tube\s*support|support\s*casting|hook\s*casting|roof\s*casting|tube\s*hanger|corrosion\s*probe\s*assembly|probe\s*assembly|corrosion\s*probe|grating|flat\s*form|refractory|\bvalve\b",
     re.I,
 )
 _ASSEMBLY_OBJECT_RE = re.compile(
-    r"bundle|tube\s*bundle|retube|retubing|new\s*vessel|신규\s*용기|\bvessel\b|shell\s*cover|floating\s*head|\bchannel\b|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|expansion\s*joint|bellows|sleeve|saddle(?!\s*clip)",
+    r"bundle|tube\s*bundle|retube|retubing|new\s*vessel|신규\s*용기|\bvessel\b|shell\s*cover|floating\s*head|\bchannel\b|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|steam\s*manifold|pilot\s*gas\s*assembly|chimney\s*section|return\s*bend|expansion\s*joint|bellows|sleeve|saddle(?!\s*clip)",
     re.I,
 )
 _INSTALL_OR_REPLACE_RE = re.compile(r"교체|replace|설치|install|신규\s*제작|신규\s*교체|제작\s*후\s*교체|fabricat|retube", re.I)
-_ACTION_FALLBACK_RE = re.compile(r"교체|replace|retube|retubing|보수|repair|보강|용접|weld|도장|coating|plugging|plug|blind\s*처리|재시공|설치|시공", re.I)
+_ACTION_FALLBACK_RE = re.compile(r"교체|replace|replaced|replacement|renewed|prefabricated|retube|retubing|보수|부분\s*보수|부분보수|repair|repaired|reinforced|reconditioned|restored|restoration|machined|lathe\s*machined|보강|용접|weld|reweld|seal\s*weld|weld[- ]?built[- ]?up|ground\s*out|deposit\s*welding|metal\s*plugged|도장|painted|coating|plugging|plug|blind\s*처리|재시공|설치|시공|lining\s*repair|lining\s*restored|concrete\s*lining|concrete\s*repair|내화물\s*보수|refractory|mortar|anchor\s*mesh", re.I)
 _TOOLING_RE = re.compile(r"유압\s*토크\s*렌치|토크\s*렌치|hydraulic\s*torque\s*wrench|torque\s*wrench", re.I)
 _ASSEMBLY_PERFORMED_RE = re.compile(
-    r"신규\s*제작|사전\s*제작|제작\s*후\s*교체|pre\s*-?fabricat|신규\s*교체\s*실시|교체함|교체\s*설치함|설치함|retube|replace(d)?",
+    r"신규\s*제작|사전\s*제작|제작\s*후\s*교체|pre\s*-?fabricat|prefabricated|newly\s*fabricated|신규\s*교체\s*실시|교체함|교체\s*설치함|설치함|retube|renewed|replace(d)?",
     re.I,
 )
 _SPLIT_LINE_RE = re.compile(r"(?:\\n|\n)+")
+_TRAILING_HISTORY_NOTE_RE = re.compile(r"(?:[‘\'`]\d{2}년|(?:19|20)\d{2}년)\s*[^.]{0,140}?(?:교체|보수|용접|replace|replaced|repair(?:ed)?|retube|retubing|renewed)[^.]*$", re.I)
+_CLAUSE_SPLIT_RE = re.compile(r"(?:\s+(?=차기\s*TA|차기\s*정기|다음\s*TA|향후|추후|권고|recommend|recommended|should\s+be|shall\s+be|next\s*(?:ta|shutdown|turnaround|t\s*&\s*i)))|(?<=[.!?])\s+")
 
 
 def _parse_tag_list(value) -> List[str]:
@@ -174,8 +177,17 @@ def _normalize_sentence(text: str) -> str:
     t = str(text or "")
     t = _SPLIT_LINE_RE.sub(" ", t)
     t = re.sub(r"<[^>]+>", " ", t)
+    t = _TRAILING_HISTORY_NOTE_RE.sub(" ", t)
     t = re.sub(r"\s+", " ", t)
     return t.strip()
+
+
+def _split_sentence_clauses(text: str) -> List[str]:
+    t = _normalize_sentence(text)
+    if not t:
+        return []
+    parts = [p.strip(" -/,:;") for p in _CLAUSE_SPLIT_RE.split(t) if p and p.strip()]
+    return parts or ([t] if t else [])
 
 
 def is_noise_sentence(text: str) -> bool:
@@ -201,6 +213,8 @@ def is_action_sentence(text: str, raw_tags: List[str] | None = None) -> bool:
     if _RECOMMENDATION_ACTION_RE.search(t) and not _DONE_RE.search(t):
         return False
     if _RECOM_RE.search(t) and not _DONE_RE.search(t):
+        return False
+    if _NEGATED_ACTION_RE.search(t):
         return False
     if (
         _AIR_COOLER_PLUG_SERVICE_RE.search(t)
@@ -361,14 +375,17 @@ def _apply_verified_event_corrections(event: MaintenanceEvent) -> MaintenanceEve
 def _row_records(year_group: pd.DataFrame) -> List[dict]:
     records: List[dict] = []
     for _, row in year_group.reset_index(drop=True).iterrows():
-        sentence = _normalize_sentence(row.get("sentence", ""))
-        if not sentence or is_noise_sentence(sentence):
-            continue
-        records.append({
-            "text": sentence,
-            "action_tags": _parse_tag_list(row.get("action_tags")),
-            "damage_tags": _parse_tag_list(row.get("damage_tags")),
-        })
+        raw_sentence = row.get("sentence", "")
+        action_tags = _parse_tag_list(row.get("action_tags"))
+        damage_tags = _parse_tag_list(row.get("damage_tags"))
+        for sentence in _split_sentence_clauses(raw_sentence):
+            if not sentence or is_noise_sentence(sentence):
+                continue
+            records.append({
+                "text": sentence,
+                "action_tags": action_tags,
+                "damage_tags": damage_tags,
+            })
 
     merged: List[dict] = []
     for rec in records:
