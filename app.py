@@ -10,7 +10,11 @@ from typing import Iterable
 import pandas as pd
 import streamlit as st
 
-from src.exporter import export_dataframes, export_excel
+try:
+    from src.exporter import export_dataframes, export_excel
+except ImportError:
+    from src.exporter import export_excel
+    export_dataframes = None
 from src.pipeline import run_pipeline_v6
 
 try:
@@ -158,6 +162,28 @@ def filter_related_objects(filtered_task_df: pd.DataFrame, repeat_cases: list, a
     return filtered_cases, filtered_events
 
 
+def _call_export_excel(
+    task_df: pd.DataFrame,
+    repeat_cases: list,
+    all_events: list,
+    output_path: Path,
+    category_source_df: pd.DataFrame | None = None,
+    extra_sheets: dict[str, pd.DataFrame] | None = None,
+) -> None:
+    try:
+        export_excel(
+            task_df,
+            repeat_cases,
+            all_events,
+            output_path,
+            category_source_df=category_source_df,
+            extra_sheets=extra_sheets,
+        )
+    except TypeError:
+        export_excel(task_df, repeat_cases, all_events, output_path)
+
+
+
 def make_fixed_excel_bytes(
     task_df: pd.DataFrame,
     repeat_cases: list,
@@ -168,7 +194,7 @@ def make_fixed_excel_bytes(
 ) -> tuple[bytes, str]:
     temp_dir = Path(tempfile.mkdtemp(prefix="repeat_task_export_"))
     output_path = temp_dir / f"{filename_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    export_excel(task_df, repeat_cases, all_events, output_path, category_source_df=category_source_df, extra_sheets=extra_sheets)
+    _call_export_excel(task_df, repeat_cases, all_events, output_path, category_source_df=category_source_df, extra_sheets=extra_sheets)
     return output_path.read_bytes(), output_path.name
 
 
@@ -268,15 +294,22 @@ def filter_piping_excluded_by_lines(excluded_df: pd.DataFrame, lines: set[str], 
 def make_piping_excel_bytes(summary_df: pd.DataFrame, repeat_df: pd.DataFrame, occurrences_df: pd.DataFrame, excluded_df: pd.DataFrame, filename_prefix: str) -> tuple[bytes, str]:
     temp_dir = Path(tempfile.mkdtemp(prefix="repeat_piping_export_"))
     output_path = temp_dir / f"{filename_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    export_dataframes(
-        [
-            ("summary", summary_df),
-            ("반복배관후보", repeat_df),
-            ("occurrences", occurrences_df),
-            ("excluded_review", excluded_df),
-        ],
-        output_path,
-    )
+    if export_dataframes is not None:
+        export_dataframes(
+            [
+                ("summary", summary_df),
+                ("반복배관후보", repeat_df),
+                ("occurrences", occurrences_df),
+                ("excluded_review", excluded_df),
+            ],
+            output_path,
+        )
+    else:
+        with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
+            summary_df.to_excel(writer, index=False, sheet_name="summary")
+            repeat_df.to_excel(writer, index=False, sheet_name="반복배관후보")
+            occurrences_df.to_excel(writer, index=False, sheet_name="occurrences")
+            excluded_df.to_excel(writer, index=False, sheet_name="excluded_review")
     return output_path.read_bytes(), output_path.name
 
 
