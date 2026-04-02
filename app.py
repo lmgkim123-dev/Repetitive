@@ -4,11 +4,15 @@ import re
 import tempfile
 from datetime import datetime
 from io import BytesIO
+from math import ceil
 from pathlib import Path
 from typing import Iterable
 
 import pandas as pd
 import streamlit as st
+from openpyxl import load_workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
 
 try:
     from src.exporter import export_dataframes, export_excel
@@ -83,6 +87,98 @@ def split_fixed_input_files(files: list) -> tuple[list, list[str]]:
         else:
             usable.append(uploaded_file)
     return usable, skipped
+
+
+_HEADER_FILL = PatternFill(fill_type="solid", fgColor="1F4E78")
+_HEADER_FONT = Font(color="FFFFFF", bold=True)
+_CENTER_HEADERS = {
+    "NO", "Equipment No", "발생구분", "발생년도수", "발생년도", "발췌 Category", "검토필요여부",
+    "year", "event_year", "event_date", "source_count", "confidence", "발생횟수", "최근발생일", "source_type",
+}
+_WIDE_TEXT_HEADERS = {
+    "설비명", "반복부위", "TA 조치사항", "추후 권고사항", "제목", "상세 내용", "source_files",
+    "finding_location", "finding_damage", "finding_measurement", "action_type", "action_detail", "recommendation",
+    "evidence_summary", "repeat_reason", "action_cluster", "location_cluster", "damage_cluster", "sources",
+    "titles", "details", "출처", "대표조치", "상세이력", "검토메모", "title", "detail", "exclude_reason",
+}
+_FIXED_WIDTHS = {
+    "NO": 7, "Equipment No": 15, "설비명": 30, "발생구분": 13, "발생년도수": 11, "발생년도": 18,
+    "발췌 Category": 18, "반복부위": 26, "TA 조치사항": 60, "추후 권고사항": 60, "제목": 42,
+    "상세 내용": 92, "검토필요여부": 12, "equipment_no": 15, "equipment_name": 30, "year": 10,
+    "source_files": 32, "finding_location": 24, "finding_damage": 24, "finding_measurement": 22,
+    "action_type": 24, "action_detail": 60, "recommendation": 60, "evidence_summary": 80,
+    "action_cluster": 20, "location_cluster": 20, "damage_cluster": 20, "repeat_reason": 48, "confidence": 10,
+    "Line Number": 18, "발생횟수": 10, "최근발생일": 14, "출처": 24, "대표조치": 44, "상세이력": 66,
+    "검토메모": 38, "line_no": 18, "event_date": 14, "event_year": 10, "sources": 24, "source_count": 10,
+    "titles": 40, "details": 72, "source_type": 16, "title": 30, "detail": 78, "exclude_reason": 30,
+}
+
+
+def _fmt_text(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, float) and pd.isna(value):
+        return ""
+    return str(value)
+
+
+def _estimate_wrapped_lines(text: str, width: int) -> int:
+    if not text:
+        return 1
+    usable = max(14, width - 2)
+    count = 0
+    for raw in text.splitlines() or [text]:
+        line = raw.strip() or " "
+        count += max(1, ceil(len(line) / usable))
+    return count
+
+
+def _estimate_col_width(ws, col_idx: int, header: str) -> float:
+    if header in _FIXED_WIDTHS:
+        return _FIXED_WIDTHS[header]
+    max_len = len(header)
+    for row_idx in range(2, min(ws.max_row, 150) + 1):
+        txt = _fmt_text(ws.cell(row=row_idx, column=col_idx).value)
+        max_len = max(max_len, max((len(x) for x in txt.splitlines()), default=0))
+    if header in _WIDE_TEXT_HEADERS:
+        return max(24, min(64, int(max_len * 1.05) + 2))
+    return max(10, min(26, int(max_len * 1.1) + 2))
+
+
+def _apply_readable_excel_format(output_path: Path) -> None:
+    wb = load_workbook(output_path)
+    for ws in wb.worksheets:
+        if ws.max_row == 0 or ws.max_column == 0:
+            continue
+        ws.freeze_panes = "A2"
+        ws.auto_filter.ref = ws.dimensions
+        ws.sheet_view.zoomScale = 90
+        headers = []
+        for col_idx in range(1, ws.max_column + 1):
+            cell = ws.cell(row=1, column=col_idx)
+            header = _fmt_text(cell.value)
+            headers.append(header)
+            cell.fill = _HEADER_FILL
+            cell.font = _HEADER_FONT
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            ws.column_dimensions[get_column_letter(col_idx)].width = _estimate_col_width(ws, col_idx, header)
+        ws.row_dimensions[1].height = 26
+
+        for row_idx in range(2, ws.max_row + 1):
+            line_est = 1
+            for col_idx, header in enumerate(headers, start=1):
+                cell = ws.cell(row=row_idx, column=col_idx)
+                text = _fmt_text(cell.value)
+                width = int(ws.column_dimensions[get_column_letter(col_idx)].width or 12)
+                cell.alignment = Alignment(
+                    horizontal="center" if header in _CENTER_HEADERS else "left",
+                    vertical="top",
+                    wrap_text=True,
+                )
+                if header in _WIDE_TEXT_HEADERS or len(text) > 24 or "\n" in text:
+                    line_est = max(line_est, _estimate_wrapped_lines(text, width))
+            ws.row_dimensions[row_idx].height = min(220, max(22, 17 * line_est + 4))
+    wb.save(output_path)
 
 
 # -------------------------------------------------
@@ -195,6 +291,7 @@ def make_fixed_excel_bytes(
     temp_dir = Path(tempfile.mkdtemp(prefix="repeat_task_export_"))
     output_path = temp_dir / f"{filename_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     _call_export_excel(task_df, repeat_cases, all_events, output_path, category_source_df=category_source_df, extra_sheets=extra_sheets)
+    _apply_readable_excel_format(output_path)
     return output_path.read_bytes(), output_path.name
 
 
@@ -310,6 +407,7 @@ def make_piping_excel_bytes(summary_df: pd.DataFrame, repeat_df: pd.DataFrame, o
             repeat_df.to_excel(writer, index=False, sheet_name="반복배관후보")
             occurrences_df.to_excel(writer, index=False, sheet_name="occurrences")
             excluded_df.to_excel(writer, index=False, sheet_name="excluded_review")
+    _apply_readable_excel_format(output_path)
     return output_path.read_bytes(), output_path.name
 
 
