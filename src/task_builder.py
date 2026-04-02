@@ -531,10 +531,18 @@ def _extract_recommendation_items(event, allowed_years: set[int] | None = None) 
         text = _strip_other_year_history(raw, year)
         for clause in _split_clauses(text):
             clause = _clean_clause_text(clause)
+            clause = re.sub(r"^\(?\d+[)\.]\s*", "", clause)
+            clause = re.sub(r"^[\-•*]+\s*", "", clause)
             clause = _normalize_text(clause)
             if not clause or _is_negative_or_empty(clause) or _is_historical_only(clause, year):
                 continue
             if _has_explicit_done(clause):
+                continue
+            if re.fullmatch(r"(?:필요|요망|검토|예정)\)?[:：]?\s*\d+\.?", clause, re.I):
+                continue
+            if len(clause) < 12:
+                continue
+            if not re.search(r"차기|다음|향후|추후|권고|필요|요망|검토|예정|교체|보수|설치|도장|용접|replace|repair|install|weld|coating|retub|packing|nozzle|bundle|lining|refractory", clause, re.I):
                 continue
             if _looks_like_recommendation(clause):
                 recs.append(f"[{year}] {clause}")
@@ -571,8 +579,18 @@ def _clean_equipment_name(name: str) -> str:
     if not t:
         return ""
     t = re.sub(r"^(?:AND|THE)\s+", "", t, flags=re.I)
-    t = re.sub(r"\s+", " ", t).strip(" -/:;,.")
-    if re.search(r"검사일|상세내용|차기고려사항|발생년도|발췌\s*category", t, re.I):
+    t = re.sub(r"\s+", " ", t).strip(" -/:;,.[]()")
+    if len(t) > 80:
+        return ""
+    if re.search(
+        r"검사일|상세내용|차기고려사항|발생년도|발췌\s*category|점검\s*결과|검사\s*결과|확인됨|확인되었|발생\s*확인|양호한\s*상태|양호함|필요|요망|검토|실시|진행|부식|감육|균열|연결\s*nozzle|grid\s*ut|scanning|thickness|두께\s*측정|정밀\s*두께|보수작업|교체여부",
+        t,
+        re.I,
+    ):
+        return ""
+    if len(t.split()) >= 6 and re.search(r"확인|발생|진행|실시|필요|요망|검토|판단|측정|부착|고착|양호|보수|교체|용접|도장|repair|replace|inspect|confirm|found|observed", t, re.I):
+        return ""
+    if re.search(r"[.!?]", t):
         return ""
     return t
 
