@@ -1,205 +1,136 @@
-"""v6 anchor_builder – 설비번호-설비명 확정 모듈
-
-핵심 원칙:
-1) "설비번호 (설비명)" 패턴이 최우선
-2) 부위/라인/부속/조치 문구는 설비명에서 금지
-3) 모든 파일에서 수집 후, 빈도 × 패턴 가중치로 최종 선정
-"""
 from __future__ import annotations
 
 import re
-from collections import defaultdict
-from typing import Dict, List, Tuple
+from collections import Counter, defaultdict
+from typing import Dict, Iterable, List, Tuple
 
-# ── 설비명 금지 패턴 ──
-_FORBIDDEN_NAME_RE = re.compile(
-    r"교체|설치|제작|실시|요망|검사|점검|조치|비고|내용|손상|부식|누설|균열|감육|두께|상태|표면|도장|"
-    r"sandblasting|coating|phenolic|epoxy|"
-    r"nozzle\s*no\.?|nozzle|tray|internal|packing|shell|mesh|support|bar|steam|"
-    r"line$|^line\b|o/h\s+line|over\s*flash|bottom\s+line|"
-    r"pipe|punch\s*plate|wear\s*pad|lining|baffle|bed$|bubble\s*cap|distributor|collector|"
-    r"downcomer|riser|plug|gasket|bolt|flange|valve|"
-    r"용접|보수|보온|제거|철거|세척|cleaning|결함|시험|mt|pt|ut|rt|"
-    r"설계|재질|두께|허용|부식여유",
+_EQ_RE = re.compile(r"(?<![A-Z0-9])(\d{2,3})\s*[-_ ]?\s*([A-Z]{1,3})\s*[-_ ]?\s*(\d{3,4}[A-Z]?)(?![A-Z0-9])", re.I)
+_NAME_NOISE_RE = re.compile(
+    r"검사일|차기검사예정일|검사구분|상세내용|차기고려사항|등록일|공정담당자|검사원|발생년도|발췌\s*category|TA\s*조치사항|추후\s*권고사항|"
+    r"점검\s*결과|검사\s*결과|확인됨|확인되었|발생\s*확인|양호한\s*상태|양호함|필요|요망|검토|실시|진행|부식|감육|균열|pitting|corrosion|"
+    r"연결\s*nozzle|grid\s*ut|scanning|thickness|두께\s*측정|정밀\s*두께|보수작업|교체여부",
+    re.I,
+)
+_SENTENCE_LIKE_RE = re.compile(
+    r"확인|발생|진행|실시|필요|요망|검토|판단|측정|부착|고착|양호|보수|교체|용접|도장|repair|replace|inspect|confirm|found|observed",
     re.I,
 )
 
-# ── 좋은 설비명 패턴 ──
-_GOOD_NAME_RE = re.compile(
-    r"column|drum|tower|stripper|receiver|cooler|filter|accumulator|separator|"
-    r"reflux|surge|absorber|flare|cracker|stabilizer|"
-    r"exchanger|condenser|reboiler|scrubber|knock\s*out|k/o|"
-    r"heater|furnace|compressor|pump|blower|ejector|"
-    r"reactor|regenerator|deaerator|desalter|mixer",
-    re.I,
-)
 
-# ── 설비번호 패턴 ──
-_EQUIP_RE = re.compile(r"\b\d{2,3}\s?[A-Z]{1,4}-?\d{3,4}[A-Z]?\b", re.I)
-
-
-def normalize_equipment_no(raw: str) -> str:
-    if not raw:
+def normalize_equipment_no(text):
+    t = str(text or "").upper().strip()
+    if not t:
         return ""
-    text = str(raw).upper().strip()
-    text = re.sub(r"\s+", "", text)
-    m = re.match(r"^(\d{2,3})([A-Z]{1,5})(\d{3,4}[A-Z]?)$", text)
-    if m:
-        return f"{m.group(1)}{m.group(2)}-{m.group(3)}"
-    return text
-
-
-def _clean_candidate(text: str, eq_no: str = "") -> str:
-    v = re.sub(r"\s+", " ", str(text)).strip()
-    if not v:
+    t = t.replace("–", "-").replace("—", "-").replace("_", "-")
+    m = _EQ_RE.search(t)
+    if not m:
         return ""
-    if eq_no:
-        for variant in [eq_no, eq_no.replace("-", ""), eq_no.replace("-", " ")]:
-            v = re.sub(re.escape(variant), " ", v, flags=re.I)
-    v = re.sub(r"^[\-–—:;,./\[\]\(\)]+", "", v).strip()
-    v = re.sub(r"[\)\]]+$", "", v).strip()
-    v = re.split(r"\b(?:inspection|result|comment|recommend|remark|action|조치|검사|비고|내용)\b", v, maxsplit=1, flags=re.I)[0].strip()
-    v = re.sub(r"\s{2,}", " ", v).strip(" -:;/")
-    return v[:60] if len(v) >= 2 else ""
+    return f"{m.group(1)}{m.group(2)}-{m.group(3)}"
 
 
-def _score_candidate(name: str, pattern: str) -> float:
-    """설비명 후보 점수: 패턴 가중치 + 내용 가중치"""
-    if not name:
-        return -999
 
-    # ── 패턴 가중치 ──
-    pattern_weight = {
-        "paren_exact": 50,     # 02C-101 (Crude Column) → 최고
-        "before_paren": 45,    # Crude Column (02C-101)
-        "header_match": 35,    # 표 제목에서 설비명
-        "table_match": 30,     # 표 셀에서 인접
-        "after_code": 20,      # 02C-101 Crude Column 형태
-        "next_line": 12,       # 다음 줄
-        "fallback": 5,         # 기타
-    }.get(pattern, 5)
+def _clean_candidate(name, eq_norm=""):
+    t = str(name or "").replace("\n", " ").strip()
+    t = re.sub(r"\s+", " ", t)
+    if not t or t.lower() in {"nan", "n/a", "none"}:
+        return ""
+    if eq_norm:
+        t = re.sub(re.escape(eq_norm), " ", t, flags=re.I)
+        # also drop expanded form 85-C-303 if eq_norm is 85C-303
+        t = re.sub(r"(?i)\b" + re.escape(re.sub(r"^(\d{2,3})([A-Z]{1,3})-(\d{3,4}[A-Z]?)$", r"\1-\2-\3", eq_norm)) + r"\b", " ", t)
+    t = re.sub(r"^[\[(<\s]*(?:no\.?\s*\d+|\d+[.)]|[-*•])\s*", "", t, flags=re.I)
+    t = re.sub(r"^[A-Z]\s*[:：]\s*", "", t)
+    t = re.sub(r"\s+", " ", t).strip(" -/:;,.[]()")
+    if not t or len(t) < 3 or len(t) > 80:
+        return ""
+    if _NAME_NOISE_RE.search(t):
+        return ""
+    words = t.split()
+    if len(words) >= 6 and _SENTENCE_LIKE_RE.search(t):
+        return ""
+    if re.search(r"[.!?]", t):
+        return ""
+    return t
 
-    score = pattern_weight
 
-    # ── 내용 가중치 ──
-    if _GOOD_NAME_RE.search(name):
-        score += 25
-    if _FORBIDDEN_NAME_RE.search(name):
-        score -= 40
-    if len(name.split()) > 5:
-        score -= 10
-    if len(name) < 3:
-        score -= 15
-    if re.fullmatch(r"[A-Z0-9\-\s/&]+", name, re.I) and len(name) > 3:
-        score += 5
-    if re.search(r"^\d", name):
-        score -= 10
 
+def _score_candidate(name, source=""):
+    t = _clean_candidate(name)
+    if not t:
+        return 0.0
+    score = 1.0
+    if source == "column_equipment_name":
+        score += 5.0
+    elif source == "pair_line":
+        score += 3.0
+    elif source == "fallback":
+        score += 1.0
+    if re.fullmatch(r"[A-Z0-9 .&/()'_-]+", t):
+        score += 1.5
+    if 3 <= len(t.split()) <= 6:
+        score += 1.0
+    if re.search(r"REACTOR|DRUM|EXCHANGER|COOLER|COLUMN|TOWER|VESSEL|HEATER|FILTER|SCRUBBER|SEPARATOR|ACCUMULATOR", t, re.I):
+        score += 2.0
+    if re.search(r"NOZZLE|PIPE|배관", t, re.I):
+        score -= 2.0
     return score
 
 
-def extract_names_from_text(equipment_no: str, text: str, source_file: str = "") -> List[Tuple[str, str, float]]:
-    """텍스트에서 설비명 후보를 추출한다.
 
-    Returns: [(candidate_name, pattern, score), ...]
-    """
-    eq = normalize_equipment_no(equipment_no)
-    if not eq or not text:
+def build_name_map_from_lines(lines, source_name):
+    out: Dict[str, List[Tuple[str, str, float]]] = defaultdict(list)
+    prev = ""
+    for raw in lines or []:
+        line = re.sub(r"\s+", " ", str(raw or "")).strip()
+        if not line:
+            continue
+        eq_norm = normalize_equipment_no(line)
+        if eq_norm:
+            tail = line.split(eq_norm, 1)[-1].strip(" -:|")
+            cand = _clean_candidate(tail, eq_norm)
+            if cand:
+                out[eq_norm].append((cand, "pair_line", _score_candidate(cand, "pair_line")))
+            elif prev:
+                prev_cand = _clean_candidate(prev, eq_norm)
+                if prev_cand:
+                    out[eq_norm].append((prev_cand, "prev_line", _score_candidate(prev_cand, "pair_line")))
+        prev = line
+    return out
+
+
+
+def extract_names_from_text(eq_norm, text):
+    t = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not t:
         return []
-
-    results: List[Tuple[str, str, float]] = []
-    seen = set()
-
-    def _add(name: str, pattern: str):
-        cleaned = _clean_candidate(name, eq)
-        if cleaned and cleaned not in seen:
-            seen.add(cleaned)
-            s = _score_candidate(cleaned, pattern)
-            results.append((cleaned, pattern, s))
-
-    # ── 패턴 1: 02C-101 (Crude Column) ──
-    for m in re.finditer(rf"{re.escape(eq)}\s*\(([^)]+)\)", text, re.I):
-        _add(m.group(1), "paren_exact")
-
-    # 공백 없는 변형: 02C101 (Crude Column)
-    eq_nohyphen = eq.replace("-", "")
-    for m in re.finditer(rf"{re.escape(eq_nohyphen)}\s*\(([^)]+)\)", text, re.I):
-        _add(m.group(1), "paren_exact")
-
-    # ── 패턴 2: Crude Column (02C-101) ──
-    for m in re.finditer(rf"([A-Za-z][A-Za-z0-9/&\-\s]{{2,40}})\s*\(\s*{re.escape(eq)}\s*\)", text, re.I):
-        _add(m.group(1), "before_paren")
-    for m in re.finditer(rf"([A-Za-z][A-Za-z0-9/&\-\s]{{2,40}})\s*\(\s*{re.escape(eq_nohyphen)}\s*\)", text, re.I):
-        _add(m.group(1), "before_paren")
-
-    # ── 패턴 3: 02C-101 Crude Column (공백 후 이어지는 이름) ──
-    for m in re.finditer(rf"{re.escape(eq)}\s+([A-Za-z][A-Za-z0-9/&\-\s]{{2,40}}?)(?=\s{{2,}}|[|;,:]|\n|$)", text, re.I):
-        _add(m.group(1), "after_code")
-
-    return results
+    cands = []
+    if eq_norm and eq_norm in t:
+        tail = t.split(eq_norm, 1)[-1].strip(" -:|")
+        cand = _clean_candidate(tail, eq_norm)
+        if cand:
+            cands.append((cand, "inline_eq", _score_candidate(cand, "pair_line")))
+    return cands
 
 
-def build_equipment_name_map(
-    all_candidates: Dict[str, List[Tuple[str, str, float]]],
-) -> Dict[str, str]:
-    """모든 파일에서 수집한 후보를 종합하여 설비별 최종 설비명 확정
 
-    규칙:
-    - 같은 이름이 여러 번 나오면 빈도 보너스
-    - 최종 score = sum(individual scores) + frequency_bonus
-    - score < 0 이면 설비명 없음
-    """
-    result: Dict[str, str] = {}
-
-    for eq_no, candidates in all_candidates.items():
-        if not candidates:
+def build_equipment_name_map(d):
+    out = {}
+    for k, vals in (d or {}).items():
+        bucket = Counter()
+        score_map = defaultdict(float)
+        for item in vals or []:
+            if isinstance(item, tuple):
+                name = _clean_candidate(item[0], k)
+                score = float(item[2]) if len(item) >= 3 else _score_candidate(name, item[1] if len(item) >= 2 else "")
+            else:
+                name = _clean_candidate(item, k)
+                score = _score_candidate(name, "fallback")
+            if not name:
+                continue
+            bucket[name] += 1
+            score_map[name] += score
+        if not bucket:
+            out[k] = ""
             continue
-
-        name_scores: Dict[str, float] = defaultdict(float)
-        name_counts: Dict[str, int] = defaultdict(int)
-
-        for name, _pattern, score in candidates:
-            name_scores[name] += score
-            name_counts[name] += 1
-
-        # 빈도 보너스
-        for name in name_scores:
-            name_scores[name] += name_counts[name] * 5
-
-        ranked = sorted(name_scores.items(), key=lambda x: (-x[1], len(x[0])))
-        best_name, best_score = ranked[0]
-        if best_score > 0:
-            result[eq_no] = best_name
-
-    return result
-
-
-def build_name_map_from_lines(lines: List[str], source_file: str = "") -> Dict[str, List[Tuple[str, str, float]]]:
-    """PDF/텍스트 줄 목록에서 설비별 이름 후보 수집"""
-    all_candidates: Dict[str, List[Tuple[str, str, float]]] = defaultdict(list)
-
-    for idx, line in enumerate(lines):
-        line_clean = re.sub(r"\s+", " ", line).strip()
-        if not line_clean:
-            continue
-
-        eqs = [normalize_equipment_no(m) for m in _EQUIP_RE.findall(line_clean)]
-        eqs = [e for e in eqs if e]
-
-        if not eqs:
-            continue
-
-        for eq in eqs:
-            found = extract_names_from_text(eq, line_clean, source_file)
-            all_candidates[eq].extend(found)
-
-            # 다음 줄 체크
-            if not found and idx + 1 < len(lines):
-                next_line = re.sub(r"\s+", " ", lines[idx + 1]).strip()
-                if next_line and not _EQUIP_RE.search(next_line):
-                    cand = _clean_candidate(next_line, eq)
-                    if cand and not _FORBIDDEN_NAME_RE.search(cand):
-                        s = _score_candidate(cand, "next_line")
-                        all_candidates[eq].append((cand, "next_line", s))
-
-    return dict(all_candidates)
+        out[k] = sorted(bucket.keys(), key=lambda n: (-score_map[n], -bucket[n], -len(n), n))[0]
+    return out
