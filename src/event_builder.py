@@ -242,7 +242,13 @@ def _merge_sentences(sentences: List[str], max_length: int = 320) -> str:
 
 _GENERATED_OUTPUT_FILE_RE = re.compile(r"반복정비_고정장치_(?:필터결과|조치요약|과제후보)_v\d+|repeat[_ -]?task", re.I)
 _NAME_NOISE_RE = re.compile(
-    r"검사일|차기검사예정일|검사구분|상세내용|차기고려사항|등록일|공정담당자|검사원|발생년도|발췌\s*category|TA\s*조치사항|추후\s*권고사항",
+    r"검사일|차기검사예정일|검사구분|상세내용|차기고려사항|등록일|공정담당자|검사원|발생년도|발췌\s*category|TA\s*조치사항|추후\s*권고사항|"
+    r"점검\s*결과|검사\s*결과|확인됨|확인되었|발생\s*확인|양호한\s*상태|양호함|필요|요망|검토|실시|진행|부식|감육|균열|pitting|corrosion|"
+    r"연결\s*nozzle|grid\s*ut|scanning|thickness|두께\s*측정|정밀\s*두께|보수작업|교체여부",
+    re.I,
+)
+_NAME_SENTENCE_LIKE_RE = re.compile(
+    r"확인|발생|진행|실시|필요|요망|검토|판단|측정|부착|고착|양호|보수|교체|용접|도장|repair|replace|inspect|confirm|found|observed",
     re.I,
 )
 
@@ -268,11 +274,16 @@ def _clean_equipment_name_candidate(value: str, equipment_no: str = "") -> str:
         return ""
     if equipment_no:
         t = re.sub(re.escape(str(equipment_no)), " ", t, flags=re.I)
+        t = re.sub(r"(?i)\b" + re.escape(re.sub(r"^(\d{2,3})([A-Z]{1,3})-(\d{3,4}[A-Z]?)$", r"\1-\2-\3", str(equipment_no))) + r"\b", " ", t)
     t = re.sub(r"^(?:AND|THE|OF)\s+", "", t, flags=re.I)
-    t = re.sub(r"\s+", " ", t).strip(" -/:;,.")
-    if not t or len(t) < 3:
+    t = re.sub(r"\s+", " ", t).strip(" -/:;,.[]()")
+    if not t or len(t) < 3 or len(t) > 80:
         return ""
     if _NAME_NOISE_RE.search(t):
+        return ""
+    if len(t.split()) >= 6 and _NAME_SENTENCE_LIKE_RE.search(t):
+        return ""
+    if re.search(r"[.!?]", t):
         return ""
     return t
 
