@@ -106,6 +106,14 @@ _NEGATED_ACTION_RE = re.compile(
 _COATING_DAMAGE_ONLY_RE = re.compile(r"도장\s*손상|coating\s*damage|paint\s*damage|도장\s*박리", re.I)
 _TOOLING_RE = re.compile(r"유압\s*토크\s*렌치|토크\s*렌치|hydraulic\s*torque\s*wrench|torque\s*wrench", re.I)
 _LEVEL_GAUGE_RE = re.compile(r"level\s*gauge|레벨\s*게이지|liquid\s*level\s*gauge", re.I)
+_WELD_ACTION_STRONG_RE = re.compile(
+    r"육성\s*용접|육성용접|overlay|hardfacing|erni-?cr-?3|er-?nicr-?3|재\s*용접|재용접|용접보수|보수용접|weld\s*repair(?:ed)?|repair\s*weld(?:ing|ed)?|weld\s*repaired|reweld(?:ed|ing)?|weld[- ]?built[- ]?up|built\s*up\s*with|ground\s*out|deposit\s*welding|metal\s*plugg(?:ed|ing)|결함\s*제거\s*후\s*용접|선형\s*결함\s*제거\s*후\s*용접|grinding\s*후\s*용접|용접\s*실시",
+    re.I,
+)
+_WELD_REFERENCE_RE = re.compile(r"seal\s*weld(?:ing|ed)?|seal-?weld(?:ing|ed)?|welding\s*부|용접부|weld(?:ing)?\s*joint|weld(?:ing)?\s*부위", re.I)
+_INSPECTION_TEST_RE = re.compile(r"\bPT\b|\bMT\b|\bUT\b|침투탐상|자분탐상|비파괴|검사|점검|확인|수압시험|수압\s*테스트|hydro(?:static)?\s*test", re.I)
+_GOOD_STATUS_RE = re.compile(r"양호|이상\s*없|상태\s*양호|문제\s*없|good\s+condition|acceptable|satisfactory|no abnormal", re.I)
+_REASSEMBLY_ONLY_RE = re.compile(r"분해|해체|개방|opening|opened|조립함|조립\s*하였음|조립\s*하였습니다|조립\s*완료|재조립|재\s*조립|reassembl(?:ed|y)|assembled", re.I)
 _INSPECTION_ONLY_RE = re.compile(r"\bMT\b|\bPT\b|\bUT\b|검사|점검|확인|power\s*brush|power\s*brushing|세척|clean|청소|수압\s*테스트|RT/?수압\s*테스트|액체침투탐상|침투탐상|자분탐상", re.I)
 _HISTORY_PAREN_RE = re.compile(r"\([^)]*(20\d{2})년[^)]*\)", re.I)
 _TRAILING_HISTORY_NOTE_RE = re.compile(r"(?:[‘'`]?\d{2}년|(?:19|20)\d{2}년).{0,220}$", re.I)
@@ -158,6 +166,30 @@ def _has_explicit_done(text: str) -> bool:
 
 def _is_negative_or_empty(text: str) -> bool:
     return bool(re.fullmatch(r"(?:없음|해당없음|none|n/?a)\.?", _normalize_text(text), re.I))
+
+
+def _is_weld_inspection_only(text: str) -> bool:
+    t = _normalize_text(text)
+    if not t or not _WELD_REFERENCE_RE.search(t):
+        return False
+    if _WELD_ACTION_STRONG_RE.search(t):
+        return False
+    if not (_INSPECTION_TEST_RE.search(t) and _GOOD_STATUS_RE.search(t)):
+        return False
+    if re.search(r"교체|replace|보수|repair|재시공|시공|육성용접|overlay", t, re.I):
+        return False
+    return True
+
+
+def _is_inspection_reassembly_only(text: str) -> bool:
+    t = _normalize_text(text)
+    if not t:
+        return False
+    if not (_INSPECTION_TEST_RE.search(t) and _GOOD_STATUS_RE.search(t) and _REASSEMBLY_ONLY_RE.search(t)):
+        return False
+    if _REPLACE_RE.search(t) or _SIMPLE_REPAIR_RE.search(t) or _COATING_RE.search(t) or _WELD_ACTION_STRONG_RE.search(t) or _REPAIR_ACTION_RE.search(t):
+        return False
+    return True
 
 
 def _looks_like_recommendation(text: str) -> bool:
@@ -403,6 +435,8 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
         return []
     if _INSPECTION_ONLY_RE.search(combined) and not (_REPLACE_RE.search(combined) or _COATING_RE.search(combined) or _OVERLAY_RE.search(combined) or _SIMPLE_REPAIR_RE.search(combined) or _WELD_REPAIR_RE.search(combined) or _ACTION_DONE_RE.search(combined) or _DONE_FALLBACK_RE.search(combined)):
         return []
+    if _is_inspection_reassembly_only(combined):
+        return []
 
     has_replace = bool(_REPLACE_RE.search(combined)) or "replace" in action_type.lower()
     has_internal = bool(_INTERNAL_PART_RE.search(combined))
@@ -415,6 +449,9 @@ def categorize_text(text: str, action_type: str = "") -> List[str]:
     has_coating = bool(_COATING_RE.search(combined)) or "coating" in action_type.lower()
     has_overlay = bool(_OVERLAY_RE.search(combined))
     has_weld_repair = bool(_WELD_REPAIR_RE.search(combined)) or "weld_repair" in action_type.lower()
+    if _is_weld_inspection_only(combined):
+        has_overlay = False
+        has_weld_repair = False
     has_simple = bool(_SIMPLE_REPAIR_RE.search(combined)) or any(x in action_type.lower() for x in ["temporary_fix", "plugging"])
     has_done = _has_explicit_done(combined)
     categories: List[str] = []
@@ -689,7 +726,7 @@ def _category_row_is_valid(category: str, items: List[dict]) -> bool:
     if category == "도장":
         return bool(_COATING_RE.search(texts))
     if category == "육성용접":
-        return bool(_OVERLAY_RE.search(texts))
+        return bool((_OVERLAY_RE.search(texts) or _WELD_ACTION_STRONG_RE.search(texts)) and not _is_weld_inspection_only(texts))
     if category == "단순 보수":
         return bool(
             _TOOLING_RE.search(texts)

@@ -118,6 +118,14 @@ _INSTALL_OR_REPLACE_RE = re.compile(r"교체|replace|설치|install|신규\s*제
 _ACTION_FALLBACK_RE = re.compile(r"교체|replace|replaced|replacement|renewed|prefabricated|retube|retubing|보수|부분\s*보수|부분보수|repair|repaired|reinforced|reconditioned|restored|restoration|machined|lathe\s*machined|보강|용접|weld|reweld|seal\s*weld|weld[- ]?built[- ]?up|ground\s*out|deposit\s*welding|metal\s*plugged|도장|painted|coating|plugging|plug|blind\s*처리|재시공|설치|시공|lining\s*repair|lining\s*restored|concrete\s*lining|concrete\s*repair|내화물\s*보수|refractory|mortar|anchor\s*mesh", re.I)
 _TOOLING_RE = re.compile(r"유압\s*토크\s*렌치|토크\s*렌치|hydraulic\s*torque\s*wrench|torque\s*wrench", re.I)
 _LEVEL_GAUGE_RE = re.compile(r"level\s*gauge|레벨\s*게이지|liquid\s*level\s*gauge", re.I)
+_WELD_ACTION_STRONG_RE = re.compile(
+    r"육성\s*용접|육성용접|overlay|hardfacing|ER-NiCr3|ErNiCr-3|재용접|용접보수|보수용접|weld\s*repair|repair\s*welding|weld\s*repaired|reweld(?:ed|ing)?|ground\s*out|weld[- ]?built[- ]?up|built\s*up\s*with|deposit\s*welding|metal\s*plugged|결함\s*제거\s*후\s*용접|선형\s*결함\s*제거\s*후\s*용접|grinding\s*후\s*용접|stitch\s*welding|용접\s*실시",
+    re.I,
+)
+_WELD_REFERENCE_RE = re.compile(r"seal\s*weld(?:ing|ed)?|seal-?weld(?:ing|ed)?|welding\s*부|용접부|weld(?:ing)?\s*joint|weld(?:ing)?\s*부위", re.I)
+_INSPECTION_TEST_RE = re.compile(r"\bPT\b|\bMT\b|\bUT\b|침투탐상|자분탐상|비파괴|검사|점검|확인|수압시험|수압\s*테스트|hydro(?:static)?\s*test", re.I)
+_GOOD_STATUS_RE = re.compile(r"양호|이상\s*없|상태\s*양호|문제\s*없|good\s+condition|acceptable|satisfactory|no abnormal", re.I)
+_REASSEMBLY_ONLY_RE = re.compile(r"분해|해체|개방|opening|opened|조립함|조립\s*하였음|조립\s*하였습니다|조립\s*완료|재조립|재\s*조립|reassembl(?:ed|y)|assembled", re.I)
 _ASSEMBLY_PERFORMED_RE = re.compile(
     r"신규\s*제작|사전\s*제작|제작\s*후\s*교체|pre\s*-?fabricat|prefabricated|newly\s*fabricated|신규\s*교체\s*실시|교체함|교체\s*설치함|설치함|retube|renewed|replace(d)?",
     re.I,
@@ -125,6 +133,28 @@ _ASSEMBLY_PERFORMED_RE = re.compile(
 _SPLIT_LINE_RE = re.compile(r"(?:\\n|\n)+")
 _TRAILING_HISTORY_NOTE_RE = re.compile(r"(?:[‘\'`]\d{2}년|(?:19|20)\d{2}년)\s*[^.]{0,140}?(?:교체|보수|용접|replace|replaced|repair(?:ed)?|retube|retubing|renewed)[^.]*$", re.I)
 _CLAUSE_SPLIT_RE = re.compile(r"(?:\s+(?=차기\s*TA|차기\s*정기|다음\s*TA|향후|추후|권고|recommend|recommended|should\s+be|shall\s+be|next\s*(?:ta|shutdown|turnaround|t\s*&\s*i)))|(?<=[.!?])\s+")
+
+
+def _is_weld_inspection_only(text: str) -> bool:
+    t = str(text or "")
+    if not t or not _WELD_REFERENCE_RE.search(t):
+        return False
+    if _WELD_ACTION_STRONG_RE.search(t):
+        return False
+    if not (_INSPECTION_TEST_RE.search(t) and _GOOD_STATUS_RE.search(t)):
+        return False
+    if re.search(r"교체|replace|보수|repair|재시공|시공|육성용접|overlay", t, re.I):
+        return False
+    return True
+
+
+def _is_nonrepair_inspection_reassembly(text: str) -> bool:
+    t = str(text or "")
+    if not (_INSPECTION_TEST_RE.search(t) and _GOOD_STATUS_RE.search(t) and _REASSEMBLY_ONLY_RE.search(t)):
+        return False
+    if re.search(r"교체|replace|보수|repair|도장|coating|overlay|육성용접|재용접|용접보수|보수용접|retube|retubing|재시공|lining\s*repair|concrete\s*repair|mortar|anchor\s*mesh", t, re.I):
+        return False
+    return True
 
 
 def _parse_tag_list(value) -> List[str]:
@@ -138,10 +168,15 @@ def _parse_tag_list(value) -> List[str]:
 
 
 def classify_action(text: str) -> List[str]:
-    t = str(text or "").lower()
+    t = str(text or "")
+    if _is_nonrepair_inspection_reassembly(t):
+        return []
+    tl = t.lower()
     hits = []
     for cluster, keywords in ACTION_CLUSTERS.items():
-        if any(k.lower() in t for k in keywords):
+        if cluster == "weld_repair" and _is_weld_inspection_only(t):
+            continue
+        if any(k.lower() in tl for k in keywords):
             hits.append(cluster)
     return hits
 
@@ -212,6 +247,8 @@ def is_noise_sentence(text: str) -> bool:
 def is_action_sentence(text: str, raw_tags: List[str] | None = None) -> bool:
     t = _normalize_sentence(text)
     raw_tags = raw_tags or []
+    if _is_nonrepair_inspection_reassembly(t) or _is_weld_inspection_only(t):
+        return False
     if _RECOMMENDATION_ACTION_RE.search(t) and not _DONE_RE.search(t):
         return False
     if _RECOM_RE.search(t) and not _DONE_RE.search(t):
