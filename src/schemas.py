@@ -1,12 +1,49 @@
-from .schemas import RepeatCase
+from dataclasses import dataclass, field
+from typing import List
 
-def judge_repeat_cases(equipment_events, equipment_names):
-    cases=[]
-    for eq, events in equipment_events.items():
-        years=sorted({e.report_year for e in events})
-        if len(years)>=2:
-            cases.append(RepeatCase(equipment_no=eq, equipment_name=equipment_names.get(eq,''), years=years, events=events, confidence=0.9))
-    return cases
+@dataclass
+class MaintenanceEvent:
+    event_id: str
+    equipment_no: str
+    equipment_name: str
+    report_year: int
+    source_files: List[str] = field(default_factory=list)
+    finding_location: str = ''
+    finding_damage: str = ''
+    finding_measurement: str = ''
+    finding_sentences: List[str] = field(default_factory=list)
+    action_type: str = ''
+    action_detail: str = ''
+    action_sentences: List[str] = field(default_factory=list)
+    recommendation: str = ''
+    recommendation_sentences: List[str] = field(default_factory=list)
+    evidence_sentence_ids: List[str] = field(default_factory=list)
+    evidence_summary: str = ''
 
-def merge_cases_per_equipment(cases):
-    return cases
+@dataclass
+class RepeatCase:
+    equipment_no: str
+    equipment_name: str
+    years: List[int]
+    action_cluster: str = ''
+    location_cluster: str = ''
+    damage_cluster: str = ''
+    repeat_reason: str = ''
+    confidence: float = 0.9
+    events: List[MaintenanceEvent] = field(default_factory=list)
+
+@dataclass
+class TaskRow:
+    no: int
+    equipment_no: str
+    equipment_name: str
+    year_count: int
+    years_str: str
+    repeat_locations: str
+    title: str
+    detail: str
+    needs_review: bool
+    maintenance_categories: str
+    ta_actions: str
+    followup_recommendations: str
+    occurrence_class: str
