@@ -29,7 +29,7 @@ CATEGORY_ORDER = [
 TASK_COLUMNS = [
     "NO", "Equipment No", "설비명", "발생구분",
     "발생년도수", "발생년도",
-    "발췌 Category", "반복부위",
+    "발췌 Category",
     "TA 조치사항", "추후 권고사항",
     "제목", "상세 내용", "검토필요여부",
 ]
@@ -746,7 +746,6 @@ def _row_dict_from_items(no: int, equipment_no: str, equipment_name: str, catego
         "발생년도수": len(years),
         "발생년도": ", ".join(map(str, years)),
         "발췌 Category": category,
-        "반복부위": _collect_locations_from_items(items),
         "TA 조치사항": "\n".join(f"- [{item['year']}] {item['text']}" for item in items[:12]) if items else "- 명시 조치문 없음",
         "추후 권고사항": "\n".join(f"- {r}" for r in recs[:8]) if recs else "- 명시 권고문 없음",
         "제목": _build_title(equipment_no, equipment_name, category),
@@ -783,7 +782,7 @@ def build_task_rows(cases: List[RepeatCase]) -> List[TaskRow]:
                 equipment_name=eq_name,
                 year_count=len(years),
                 years_str=row_dict["발생년도"],
-                repeat_locations=row_dict["반복부위"],
+                repeat_locations="",
                 title=row_dict["제목"],
                 detail=row_dict["상세 내용"],
                 needs_review=(case.confidence < 0.8),
@@ -810,7 +809,6 @@ def build_task_dataframe(cases: List[RepeatCase]) -> pd.DataFrame:
             "발생년도수": r.year_count,
             "발생년도": r.years_str,
             "발췌 Category": r.maintenance_categories,
-            "반복부위": r.repeat_locations,
             "TA 조치사항": r.ta_actions,
             "추후 권고사항": r.followup_recommendations,
             "제목": r.title,

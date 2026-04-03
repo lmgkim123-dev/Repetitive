@@ -39,7 +39,6 @@ class TaskRow:
     equipment_name: str
     year_count: int
     years_str: str
-    repeat_locations: str
     title: str
     detail: str
     needs_review: bool
@@ -47,3 +46,4 @@ class TaskRow:
     ta_actions: str
     followup_recommendations: str
     occurrence_class: str
+    repeat_locations: str = ""
