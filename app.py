@@ -96,14 +96,14 @@ _CENTER_HEADERS = {
     "year", "event_year", "event_date", "source_count", "confidence", "발생횟수", "최근발생일", "source_type",
 }
 _WIDE_TEXT_HEADERS = {
-    "설비명", "반복부위", "TA 조치사항", "추후 권고사항", "제목", "상세 내용", "source_files",
+    "설비명", "TA 조치사항", "추후 권고사항", "제목", "상세 내용", "source_files",
     "finding_location", "finding_damage", "finding_measurement", "action_type", "action_detail", "recommendation",
     "evidence_summary", "repeat_reason", "action_cluster", "location_cluster", "damage_cluster", "sources",
     "titles", "details", "출처", "대표조치", "상세이력", "검토메모", "title", "detail", "exclude_reason",
 }
 _FIXED_WIDTHS = {
     "NO": 7, "Equipment No": 15, "설비명": 30, "발생구분": 13, "발생년도수": 11, "발생년도": 18,
-    "발췌 Category": 18, "반복부위": 26, "TA 조치사항": 60, "추후 권고사항": 60, "제목": 42,
+    "발췌 Category": 18, "TA 조치사항": 60, "추후 권고사항": 60, "제목": 42,
     "상세 내용": 92, "검토필요여부": 12, "equipment_no": 15, "equipment_name": 30, "year": 10,
     "source_files": 32, "finding_location": 24, "finding_damage": 24, "finding_measurement": 22,
     "action_type": 24, "action_detail": 60, "recommendation": 60, "evidence_summary": 80,
@@ -192,7 +192,7 @@ def build_task_display_df(task_df: pd.DataFrame) -> pd.DataFrame:
     display_df["권고 요약"] = display_df.get("추후 권고사항", "").fillna("").astype(str).apply(lambda x: _truncate_multiline(x, 120))
     preferred_cols = [
         "NO", "Equipment No", "설비명", "발생구분", "발생년도수", "발생년도",
-        "발췌 Category", "반복부위", "TA 조치 요약", "권고 요약",
+        "발췌 Category", "TA 조치 요약", "권고 요약",
     ]
     return display_df[[c for c in preferred_cols if c in display_df.columns]].copy()
 
