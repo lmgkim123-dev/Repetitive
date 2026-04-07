@@ -291,7 +291,6 @@ def make_fixed_excel_bytes(
     temp_dir = Path(tempfile.mkdtemp(prefix="repeat_task_export_"))
     output_path = temp_dir / f"{filename_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     _call_export_excel(task_df, repeat_cases, all_events, output_path, category_source_df=category_source_df, extra_sheets=extra_sheets)
-    _apply_readable_excel_format(output_path)
     return output_path.read_bytes(), output_path.name
 
 
@@ -407,7 +406,6 @@ def make_piping_excel_bytes(summary_df: pd.DataFrame, repeat_df: pd.DataFrame, o
             repeat_df.to_excel(writer, index=False, sheet_name="반복배관후보")
             occurrences_df.to_excel(writer, index=False, sheet_name="occurrences")
             excluded_df.to_excel(writer, index=False, sheet_name="excluded_review")
-    _apply_readable_excel_format(output_path)
     return output_path.read_bytes(), output_path.name
 
 
