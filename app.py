@@ -291,6 +291,7 @@ def make_fixed_excel_bytes(
     temp_dir = Path(tempfile.mkdtemp(prefix="repeat_task_export_"))
     output_path = temp_dir / f"{filename_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     _call_export_excel(task_df, repeat_cases, all_events, output_path, category_source_df=category_source_df, extra_sheets=extra_sheets)
+    _apply_readable_excel_format(output_path)
     return output_path.read_bytes(), output_path.name
 
 
@@ -309,7 +310,8 @@ def run_fixed_analysis(files: list) -> None:
         pct = int(current / total * 100) if total else 100
         progress_bar.progress(pct, text=f"분석 중... ({current}/{total}) {filename}")
 
-    repeat_task_df, repeat_cases, all_events, equipment_names = run_pipeline_v6(temp_dir, progress_callback=update_progress)
+    year_range = st.session_state.get("year_range", None)
+    repeat_task_df, repeat_cases, all_events, equipment_names = run_pipeline_v6(temp_dir, progress_callback=update_progress, year_range=year_range)
     overview_df = build_equipment_summary_dataframe(all_events)
     full_excel_bytes, full_excel_name = make_fixed_excel_bytes(
         overview_df,
@@ -406,6 +408,7 @@ def make_piping_excel_bytes(summary_df: pd.DataFrame, repeat_df: pd.DataFrame, o
             repeat_df.to_excel(writer, index=False, sheet_name="반복배관후보")
             occurrences_df.to_excel(writer, index=False, sheet_name="occurrences")
             excluded_df.to_excel(writer, index=False, sheet_name="excluded_review")
+    _apply_readable_excel_format(output_path)
     return output_path.read_bytes(), output_path.name
 
 
@@ -466,6 +469,16 @@ with st.sidebar:
             accept_multiple_files=True,
             help="TA 보고서 PDF, Trouble List/정비 이력 Excel 등을 업로드하세요.",
             key="fixed_uploads",
+        )
+        st.subheader("검사 일자 범위")
+        year_range = st.slider(
+            "조회 기간 (검사일 기준)",
+            min_value=1990,
+            max_value=2030,
+            value=(2000, 2026),
+            step=1,
+            key="year_range",
+            help="선택한 기간 내의 검사 이력만 분석에 포함됩니다.",
         )
         pre_occurrence_option = st.radio("발생기준", options=["1회성 이상", "2회 이상 반복"], index=1, key="fixed_occurrence")
         pre_selected_categories = st.multiselect("카테고리", options=CATEGORY_ORDER, default=CATEGORY_ORDER, key="fixed_categories")
