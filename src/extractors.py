@@ -80,11 +80,11 @@ def _split_field_text(text: str, section: str) -> list[str]:
 
 
 
-def _records_from_list_sheet(df: pd.DataFrame, source_file: str, sheet_name: str) -> list[dict]:
+def _records_from_list_sheet(df: pd.DataFrame, source_file: str, sheet_name: str, year_range: tuple[int,int] | None = None) -> list[dict]:
     eq_no_col = _pick_column(df, ["설비번호", "equipment_no", "equipment no"])
     eq_name_col = _pick_column(df, ["설비명", "equipment_name", "equipment name"])
     date_col = _pick_column(df, ["검사일", "inspection_date", "date"])
-    detail_col = _pick_column(df, ["상세내용", "detail", "details"])
+    detail_col = _pick_column(df, ["상세내용", "상세내역", "detail", "details"])
     rec_col = _pick_column(df, ["차기고려사항", "추후권고사항", "recommendation", "recommendations"])
     if not eq_no_col or not eq_name_col or not date_col:
         return []
@@ -96,6 +96,8 @@ def _records_from_list_sheet(df: pd.DataFrame, source_file: str, sheet_name: str
         eq_name = _clean_text(r.get(eq_name_col))
         year = _extract_year(r.get(date_col))
         if not eq_no or _is_missing(eq_name) or not year:
+            continue
+        if year_range and not (year_range[0] <= year <= year_range[1]):
             continue
         base = {
             "equipment_no": eq_no,
@@ -117,7 +119,7 @@ def _records_from_list_sheet(df: pd.DataFrame, source_file: str, sheet_name: str
 
 
 
-def extract_any(path):
+def extract_any(path, year_range: tuple[int,int] | None = None):
     path = Path(path)
     suffix = path.suffix.lower()
     if suffix not in {".xlsx", ".xls", ".xlsm", ".xlsb", ".csv"}:
@@ -125,7 +127,7 @@ def extract_any(path):
     try:
         if suffix == ".csv":
             df = pd.read_csv(path)
-            records = _records_from_list_sheet(df, path.name, "csv")
+            records = _records_from_list_sheet(df, path.name, "csv", year_range=year_range)
             return pd.DataFrame(records)
         excel = pd.ExcelFile(path)
     except Exception:
@@ -142,6 +144,6 @@ def extract_any(path):
         if df is None or df.empty:
             continue
         if sheet in _LIST_SHEET_HINTS or any(str(c).strip() in {"설비번호", "설비명", "검사일", "상세내용", "차기고려사항"} for c in df.columns):
-            all_rows.extend(_records_from_list_sheet(df, path.name, sheet))
+            all_rows.extend(_records_from_list_sheet(df, path.name, sheet, year_range=year_range))
 
     return pd.DataFrame(all_rows)

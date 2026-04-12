@@ -25,6 +25,7 @@ def _list_files(data_dir: Path) -> List[Path]:
 def run_pipeline_v6(
     data_dir: str | Path,
     progress_callback: Callable[[int, int, str], None] | None = None,
+    year_range: tuple[int, int] | None = None,
 ) -> Tuple[pd.DataFrame, List[RepeatCase], List[MaintenanceEvent], Dict[str, str]]:
     data_dir = Path(data_dir)
     files = _list_files(data_dir)
@@ -37,7 +38,7 @@ def run_pipeline_v6(
         if progress_callback:
             progress_callback(i, total, path.name)
         try:
-            df = extract_any(path)
+            df = extract_any(path, year_range=year_range)
         except Exception:
             df = pd.DataFrame()
         if df is None or df.empty:

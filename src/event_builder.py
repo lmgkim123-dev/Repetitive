@@ -68,11 +68,11 @@ LOCATION_PATTERNS = {
 }
 
 _RECOM_RE = re.compile(
-    r"차기\s*ta|다음\s*ta|추후|향후|권고|recommend|recommended|should\s+be|shall\s+be|next\s*(?:ta|shutdown|turnaround|t\s*&\s*i)|차기\s*검사|"
+    r"차기\s*ta|다음\s*ta|추후|향후|권고|필수\s*교체|교체\s*필수|필수\b|recommend|recommended|mandatory|required|should\s+be|shall\s+be|next\s*(?:ta|shutdown|turnaround|t\s*&\s*i)|차기\s*검사|"
     r"검사.*필요|교체.*요망|교체.*필요|교체할\s*경우|보수.*요함|보수.*필요|요망|실시\s*요함|필요함|적용\s*검토|정밀\s*두께\s*측정\s*필요|하여야겠음|토록\s*하여야겠음",
     re.I,
 )
-_RECOMMENDATION_ACTION_RE = re.compile(r"교체\s*요함|교체\s*필요|교체할\s*경우|적용\s*검토|차기|예정|요망|recommended|should\s+be|shall\s+be|next\s*(?:shutdown|turnaround|t\s*&\s*i)", re.I)
+_RECOMMENDATION_ACTION_RE = re.compile(r"교체\s*요함|교체\s*필요|필수\s*교체|교체\s*필수|교체할\s*경우|적용\s*검토|차기|예정|요망|recommended|mandatory|required|should\s+be|shall\s+be|next\s*(?:shutdown|turnaround|t\s*&\s*i)", re.I)
 _NEGATED_ACTION_RE = re.compile(r"(?:보수|repair|교체|replace|도장|paint|coating|용접|weld|설치|install|가공|machin(?:e|ed)|보강|reinforc(?:e|ed)|재시공|시공|retube|retubing).{0,40}?(?:하지\s*않(?:음|았음)|미실시|실시하지\s*않(?:음|았음)|안\s*함|없음|불필요|취소하였음|취소됨|취소|cancelled|canceled|별도\s*보수작업\s*실시하지\s*않음|보수\s*작업은\s*실시하지\s*않음|no\s+repair(?:\s+was\s+made)?|repair\s+was\s+not\s+made|not\s+repair(?:ed)?|not\s+repaired|need\s+not\s+repair|no\s+need\s+to\s+repair|not\s+required(?:\s+to\s+repair)?|it\s+was\s+decided\s+that\s+.*?not\s+repair)", re.I)
 _NOISE_RE = re.compile(
     r"^(?:\(?\d+\)?\s*)?(?:line\s*no\.?|nozzle\s*no\.?|"
@@ -115,7 +115,7 @@ _INTERNAL_OBJECT_RE = re.compile(
     re.I,
 )
 _ASSEMBLY_OBJECT_RE = re.compile(
-    r"bundle|tube\s*bundle|retube|retubing|new\s*vessel|신규\s*용기|\bvessel\b|shell\s*cover|floating\s*head|\bchannel\b|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|steam\s*manifold|pilot\s*gas\s*assembly|chimney\s*section|return\s*bend|expansion\s*joint|bellows|sleeve|saddle(?!\s*clip)|combust(?:or|er)|claus\s*combust(?:or|er)",
+    r"bundle|tube\s*bundle|retube|retubing|new\s*vessel|신규\s*용기|\b용기\b|vessel(?:\b|(?=[가-힣]))|drum(?:\b|(?=[가-힣]))|column(?:\b|(?=[가-힣]))|tower(?:\b|(?=[가-힣]))|separator(?:\b|(?=[가-힣]))|receiver(?:\b|(?=[가-힣]))|pot(?:\b|(?=[가-힣]))|shell\s*cover|floating\s*head|\bchannel\b|\bassembly\b|\bassy\b|\bduct\b|\bdamper\b|steam\s*manifold|pilot\s*gas\s*assembly|chimney\s*section|return\s*bend|expansion\s*joint|bellows|sleeve|saddle(?!\s*clip)|combust(?:or|er)|claus\s*combust(?:or|er)",
     re.I,
 )
 _INSTALL_OR_REPLACE_RE = re.compile(r"교체|교체하였다|replace|exchang(?:e|ed)|설치|install|신규\s*제작|신규\s*교체|제작\s*후\s*교체|fabricat|retube", re.I)
@@ -137,6 +137,25 @@ _ASSEMBLY_PERFORMED_RE = re.compile(
 _SPLIT_LINE_RE = re.compile(r"(?:\\n|\n)+")
 _TRAILING_HISTORY_NOTE_RE = re.compile(r"(?:[‘\'`]\d{2}년|(?:19|20)\d{2}년)\s*[^.]{0,140}?(?:교체|보수|용접|replace|replaced|repair(?:ed)?|retube|retubing|renewed)[^.]*$", re.I)
 _CLAUSE_SPLIT_RE = re.compile(r"(?:\s+(?=차기\s*TA|차기\s*정기|다음\s*TA|향후|추후|권고|recommend|recommended|should\s+be|shall\s+be|next\s*(?:ta|shutdown|turnaround|t\s*&\s*i)))|(?<=[.!?])\s+")
+
+_ACTION_SECTION_SPLIT_RE = re.compile(
+    r"(?i)(?:보수/개선\s*내용|주요\s*정비\s*내용|조치\s*사항|조치\s*내용|정비\s*내용|작업\s*내용)\s*[:：]?"
+)
+_FINDING_SECTION_SPLIT_RE = re.compile(
+    r"(?i)(?:초기\s*검사|상세\s*검사|검사\s*결과|점검\s*결과|육안\s*검사\s*결과|상태\s*확인)\s*[:：]?"
+)
+_COATING_STATE_RE = re.compile(
+    r"hard\s*scale.{0,20}coating|scale.{0,20}coating|coating\s*되어\s*있|coating\s*형성|formed\s+coating|도장\s*상태|coating\s*상태|paint\s*condition|도장\s*양호",
+    re.I,
+)
+_COATING_ACTION_RE = re.compile(
+    r"보수도장|재도장|도장\s*실시|touch-?up|epoxy\s*coating|high\s*build\s*epoxy|phenolic\s*epoxy|painted|coating\s*실시",
+    re.I,
+)
+_INSPECTION_RESULT_RE = re.compile(
+    r"양호함|양호하였음|이상\s*없|결함\s*없이\s*양호|PT\s*결과\s*양호|MT\s*결과\s*양호|UT\s*결과\s*양호",
+    re.I,
+)
 
 
 def _is_weld_inspection_only(text: str) -> bool:
@@ -191,18 +210,70 @@ def _parse_tag_list(value) -> List[str]:
     return [p.strip() for p in parts if p.strip()]
 
 
+def classify_sentence_role(text: str, raw_tags: List[str] | None = None) -> str:
+    t = _normalize_sentence(text)
+    raw_tags = raw_tags or []
+    if not t or is_noise_sentence(t):
+        return "noise"
+    if _RECOM_RE.search(t) and not _DONE_RE.search(t):
+        return "recommendation"
+    if _NEGATED_ACTION_RE.search(t) and not _DONE_RE.search(t):
+        return "negative"
+    if _is_nonrepair_inspection_reassembly(t) or _is_weld_inspection_only(t) or _is_nonrepair_plug_opening(t):
+        return "inspection_only"
+    if _COATING_STATE_RE.search(t) and not _COATING_ACTION_RE.search(t):
+        return "finding"
+    if _DONE_RE.search(t) or raw_tags:
+        return "action_done"
+    if classify_finding(t):
+        return "finding"
+    return "other"
+
+
 def classify_action(text: str) -> List[str]:
-    t = str(text or "")
-    if _is_nonrepair_inspection_reassembly(t):
+    t = _normalize_sentence(text)
+    if not t or classify_sentence_role(t) != "action_done":
         return []
-    tl = t.lower()
-    hits = []
-    for cluster, keywords in ACTION_CLUSTERS.items():
-        if cluster == "weld_repair" and _is_weld_inspection_only(t):
-            continue
-        if any(k.lower() in tl for k in keywords):
-            hits.append(cluster)
-    return hits
+    scores = {}
+    rules = {
+        "weld_repair": [
+            (_WELD_ACTION_STRONG_RE, 4),
+            (re.compile(r"결함\s*제거\s*후\s*용접|용접보수|보수용접", re.I), 3),
+        ],
+        "replace": [
+            (_INSTALL_OR_REPLACE_RE, 3),
+            (re.compile(r"신규\s*설치|신규\s*제작|전체\s*교체|new\s+.*installed|교체\s*하였음|교체함", re.I), 2),
+        ],
+        "coating_repair": [
+            (_COATING_ACTION_RE, 4),
+            (_COATING_STATE_RE, -5),
+        ],
+        "temporary_fix": [
+            (re.compile(r"보수|repair|grinding|결함\s*제거|patch|box-?up|메꿈", re.I), 2),
+        ],
+        "structural_repair": [
+            (re.compile(r"전극판|electrode|demister|guide\s*tube|riser|distributor|clip|tray|packing|bushing", re.I), 2),
+            (_INSTALL_OR_REPLACE_RE, 1),
+        ],
+    }
+    for cluster, rule_list in rules.items():
+        score = 0
+        for regex, weight in rule_list:
+            if regex.search(t):
+                score += weight
+        if score > 0:
+            scores[cluster] = score
+    if not scores:
+        tl = t.lower()
+        hits = []
+        for cluster, keywords in ACTION_CLUSTERS.items():
+            if cluster == "weld_repair" and _is_weld_inspection_only(t):
+                continue
+            if any(k.lower() in tl for k in keywords):
+                hits.append(cluster)
+        return hits[:1]
+    best_cluster, best_score = sorted(scores.items(), key=lambda x: (-x[1], x[0]))[0]
+    return [best_cluster] if best_score >= 2 else []
 
 
 def classify_finding(text: str) -> List[str]:
@@ -247,7 +318,21 @@ def _split_sentence_clauses(text: str) -> List[str]:
     t = _normalize_sentence(text)
     if not t:
         return []
-    parts = [p.strip(" -/,:;") for p in _CLAUSE_SPLIT_RE.split(t) if p and p.strip()]
+    t = _ACTION_SECTION_SPLIT_RE.sub(" |SPLIT| ", t)
+    t = _FINDING_SECTION_SPLIT_RE.sub(" |SPLIT| ", t)
+    t = re.sub(r"(?:(?<=^)|(?<=\s))(?:\(?\d+\)|\d+\.)\s+", " |SPLIT| ", t)
+    t = re.sub(r"(?i)(양호함\.?|양호하였음\.?|이상\s*없음\.?|결함\s*없이\s*양호\.?)(\s+)(?=(보수/개선\s*내용|주요\s*정비\s*내용|신규|교체|보수|repair|replace|anchor\s*bolt|기존\s*anchor\s*bolt|모든\s*Nozzle|내부\s*모든))", r"\1 |SPLIT| ", t)
+    t = re.sub(r"(?i)(설치\s*완료|설치함|교체함|교체\s*설치함|replaced|installed)(\s+)(?=(?:anchor\s*bolt|기존\s*anchor\s*bolt|모든\s*Nozzle|내부\s*모든|외부\s*검사|추가\s*점검))", r"\1 |SPLIT| ", t)
+    t = re.sub(r"(?i)(?<=mm)(\s+)(?=(보수/개선\s*내용|주요\s*정비\s*내용|신규|교체|보수|repair|replace))", " |SPLIT| ", t)
+    rough_parts = []
+    for part in re.split(r"\s*(?:\|SPLIT\||/|;|\n)+\s*", t):
+        part = part.strip()
+        if not part:
+            continue
+        part_chunks = re.split(r"(?<=[\.!?다함음요])\s+(?=(?:\(?\d+\)|[A-Z#0-9\"“]|Nozzle|Tray|Shell|Top|Bottom|내부|외부|Anchor|차기\s*TA|다음\s*TA|권고|검토|[‘'`]?(?:19|20)?\d{2}년))", part)
+        for chunk in part_chunks:
+            rough_parts.extend(_CLAUSE_SPLIT_RE.split(chunk))
+    parts = [p.strip(" -/,:;") for p in rough_parts if p and p.strip()]
     return parts or ([t] if t else [])
 
 
@@ -269,23 +354,7 @@ def is_noise_sentence(text: str) -> bool:
 
 
 def is_action_sentence(text: str, raw_tags: List[str] | None = None) -> bool:
-    t = _normalize_sentence(text)
-    raw_tags = raw_tags or []
-    if _is_nonrepair_inspection_reassembly(t) or _is_weld_inspection_only(t) or _is_nonrepair_plug_opening(t):
-        return False
-    if _RECOMMENDATION_ACTION_RE.search(t) and not _DONE_RE.search(t):
-        return False
-    if _RECOM_RE.search(t) and not _DONE_RE.search(t):
-        return False
-    if _NEGATED_ACTION_RE.search(t):
-        return False
-    if (
-        _AIR_COOLER_PLUG_SERVICE_RE.search(t)
-        and _AIR_COOLER_PLUG_NONREPAIR_RE.search(t)
-        and not re.search(r"누설|leak|교체|replace|보수|repair|용접|weld|균열|결함|손상|damage|막음|plugging|unplugging|재확관|확관|compound\s*sealing|box-?up", t, re.I)
-    ):
-        return False
-    return bool(_is_leak_response_tube_plugging(t) or raw_tags or classify_action(t) or (_ACTION_FALLBACK_RE.search(t) and (_DONE_RE.search(t) or re.search(r"보강함|시공하였음|재시공|실시하였음", t, re.I))))
+    return classify_sentence_role(text, raw_tags) == "action_done"
 
 
 def is_finding_sentence(text: str, raw_tags: List[str] | None = None) -> bool:
@@ -483,17 +552,22 @@ def _is_verified_assembly_replacement_sentence(text: str, raw_action_tags: List[
         return False
     if _TOOLING_RE.search(t) or _LEVEL_GAUGE_RE.search(t):
         return False
-    if _NOZZLE_KEYWORD_RE.search(t) or _INTERNAL_OBJECT_RE.search(t):
+    explicit_done = bool(_DONE_RE.search(t) or _BUNDLE_PERFORMED_RE.search(t) or _ASSEMBLY_PERFORMED_RE.search(t))
+    strong_current_assembly = bool(
+        re.search(r"신규\s*제작|제작\s*후\s*교체|신규\s*(?:column|drum|tower|vessel|separator|receiver|pot)|교체\s*설치함|설치\s*완료|newly\s*fabricated|prefabricated|replaced\s+with\s+new", t, re.I)
+        and (_ASSEMBLY_OBJECT_RE.search(t) or ("replace" in raw_action_tags))
+    )
+    if (_NOZZLE_KEYWORD_RE.search(t) or _INTERNAL_OBJECT_RE.search(t)) and not strong_current_assembly:
         return False
     if _SMALL_PART_ONLY_RE.search(t) and not re.search(r"backing\s*device|vortex\s*breaker|duct|damper|bundle|retube|vessel|shell\s*cover|floating\s*head|channel", t, re.I):
-        return False
-    explicit_done = bool(_DONE_RE.search(t) or _BUNDLE_PERFORMED_RE.search(t) or _ASSEMBLY_PERFORMED_RE.search(t))
+        if not (strong_current_assembly and re.search(r"anchor\s*bolt", t, re.I)):
+            return False
     if _RECOM_RE.search(t) and not explicit_done:
         return False
     return bool(
         _is_verified_bundle_replacement_sentence(t, raw_action_tags)
-        or (("replace" in raw_action_tags) and explicit_done)
-        or (_ASSEMBLY_OBJECT_RE.search(t) and _ASSEMBLY_PERFORMED_RE.search(t) and explicit_done)
+        or (("replace" in raw_action_tags) and (explicit_done or strong_current_assembly))
+        or (_ASSEMBLY_OBJECT_RE.search(t) and (_ASSEMBLY_PERFORMED_RE.search(t) or strong_current_assembly) and (explicit_done or strong_current_assembly))
     )
 
 
@@ -502,15 +576,20 @@ def _extract_verified_category_actions(year_group: pd.DataFrame) -> dict[str, Li
     for _, row in year_group.reset_index(drop=True).iterrows():
         sentence = _normalize_sentence(row.get("sentence", ""))
         raw_action_tags = _parse_tag_list(row.get("action_tags"))
-        if _is_verified_nozzle_replacement_sentence(sentence, raw_action_tags):
-            if sentence not in actions["nozzle"]:
-                actions["nozzle"].append(sentence)
-        if _is_verified_internal_replacement_sentence(sentence, raw_action_tags):
-            if sentence not in actions["internal"]:
-                actions["internal"].append(sentence)
-        if _is_verified_assembly_replacement_sentence(sentence, raw_action_tags):
-            if sentence not in actions["assembly"]:
-                actions["assembly"].append(sentence)
+        clauses = _split_sentence_clauses(sentence) or ([sentence] if sentence else [])
+        for clause in clauses:
+            clause = _normalize_sentence(clause)
+            if not clause:
+                continue
+            if _is_verified_nozzle_replacement_sentence(clause, raw_action_tags):
+                if clause not in actions["nozzle"]:
+                    actions["nozzle"].append(clause)
+            if _is_verified_internal_replacement_sentence(clause, raw_action_tags):
+                if clause not in actions["internal"]:
+                    actions["internal"].append(clause)
+            if _is_verified_assembly_replacement_sentence(clause, raw_action_tags):
+                if clause not in actions["assembly"]:
+                    actions["assembly"].append(clause)
     return actions
 
 
@@ -574,9 +653,8 @@ def _row_records(year_group: pd.DataFrame) -> List[dict]:
         prev = merged[-1]
         prev_s = prev["text"]
         should_merge = (
-            (len(s) <= 40 and not re.search(r"\(\d+\)|신규\s*제작|교체함|교체\s*설치함|실시함|도장\s*실시|용접\s*실시", s, re.I))
-            or _CONTINUATION_START_RE.search(s)
-            or _FRAGMENT_END_RE.search(prev_s)
+            (len(s) <= 24 and _CONTINUATION_START_RE.search(s) and not re.search(r"교체|보수|신규|replace|repair|도장|coating|용접", s, re.I))
+            or (_FRAGMENT_END_RE.search(prev_s) and len(prev_s) < 80 and not re.search(r"양호|이상\s*없|검사\s*결과", prev_s, re.I))
         )
         if should_merge and prev.get("section", "") == rec.get("section", ""):
             prev["text"] = f"{prev_s} {s}".strip()
@@ -710,4 +788,14395 @@ def build_events_for_equipment(equipment_no: str, equipment_name: str, rows: pd.
         event = _refresh_event_summary_fields(event)
         events.append(event)
 
+    # ===== Cycle2 Patch: Post-filter events =====
+    import re as _pfre
+    _PF_GOOD_ONLY = _pfre.compile(r'(?:양호|이상\s*없|특이사항\s*없|결함\s*없|no\s*defect)', _pfre.I)
+    _PF_INSP_ONLY = _pfre.compile(r'(?:두께\s*측정|thickness\s*measur|UT\s*검사|IRIS\s*검사|screen\s*대상|미\s*개방|외부\s*두께측정|초음파|NDE\s*검사)', _pfre.I)
+    _PF_HAS_ACTION = _pfre.compile(r'(?:교체|replace|용접|weld|보수|repair|도장|coating|paint|plug|설치|install|제작|fabricat|grinding|expanding|retubing|lining)', _pfre.I)
+    
+    filtered = []
+    for ev in events:
+        d = (ev.action_detail or "").strip()
+        a = (ev.action_type or "").strip()
+        r = (ev.recommendation or "").strip()
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Skip too-short noise (< 10 chars, no action type)
+        if len(d) < 10 and not a:
+            continue
+        # Skip good-condition-only
+        if d and _PF_GOOD_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Skip inspection-only
+        if d and _PF_INSP_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Skip recommendation-only (no detail, no action)
+        if not d and not a and r:
+            continue
+        
+        filtered.append(ev)
+    events = filtered if filtered else events[:1] if events else events
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    # ===== End Cycle2 Patch =====
+    # ===== Cycle2 Patch: Post-filter events =====
+    import re as _pfre
+    _PF_GOOD_ONLY = _pfre.compile(r'(?:양호|이상\s*없|특이사항\s*없|결함\s*없|no\s*defect)', _pfre.I)
+    _PF_INSP_ONLY = _pfre.compile(r'(?:두께\s*측정|thickness\s*measur|UT\s*검사|IRIS\s*검사|screen\s*대상|미\s*개방|외부\s*두께측정|초음파|NDE\s*검사)', _pfre.I)
+    _PF_HAS_ACTION = _pfre.compile(r'(?:교체|replace|용접|weld|보수|repair|도장|coating|paint|plug|설치|install|제작|fabricat|grinding|expanding|retubing|lining)', _pfre.I)
+    
+    filtered = []
+    for ev in events:
+        d = (ev.action_detail or "").strip()
+        a = (ev.action_type or "").strip()
+        r = (ev.recommendation or "").strip()
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Skip too-short noise (< 10 chars, no action type)
+        if len(d) < 10 and not a:
+            continue
+        # Skip good-condition-only
+        if d and _PF_GOOD_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Skip inspection-only
+        if d and _PF_INSP_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Skip recommendation-only (no detail, no action)
+        if not d and not a and r:
+            continue
+        
+        filtered.append(ev)
+    events = filtered if filtered else events[:1] if events else events
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    # ===== End Cycle2 Patch =====
+    # ===== Cycle2 Patch: Post-filter events =====
+    import re as _pfre
+    _PF_GOOD_ONLY = _pfre.compile(r'(?:양호|이상\s*없|특이사항\s*없|결함\s*없|no\s*defect)', _pfre.I)
+    _PF_INSP_ONLY = _pfre.compile(r'(?:두께\s*측정|thickness\s*measur|UT\s*검사|IRIS\s*검사|screen\s*대상|미\s*개방|외부\s*두께측정|초음파|NDE\s*검사)', _pfre.I)
+    _PF_HAS_ACTION = _pfre.compile(r'(?:교체|replace|용접|weld|보수|repair|도장|coating|paint|plug|설치|install|제작|fabricat|grinding|expanding|retubing|lining)', _pfre.I)
+    
+    filtered = []
+    for ev in events:
+        d = (ev.action_detail or "").strip()
+        a = (ev.action_type or "").strip()
+        r = (ev.recommendation or "").strip()
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Skip too-short noise (< 10 chars, no action type)
+        if len(d) < 10 and not a:
+            continue
+        # Skip good-condition-only
+        if d and _PF_GOOD_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Skip inspection-only
+        if d and _PF_INSP_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Skip recommendation-only (no detail, no action)
+        if not d and not a and r:
+            continue
+        
+        filtered.append(ev)
+    events = filtered if filtered else events[:1] if events else events
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    # ===== End Cycle2 Patch =====
+    # ===== Cycle2 Patch: Post-filter events =====
+    import re as _pfre
+    _PF_GOOD_ONLY = _pfre.compile(r'(?:양호|이상\s*없|특이사항\s*없|결함\s*없|no\s*defect)', _pfre.I)
+    _PF_INSP_ONLY = _pfre.compile(r'(?:두께\s*측정|thickness\s*measur|UT\s*검사|IRIS\s*검사|screen\s*대상|미\s*개방|외부\s*두께측정|초음파|NDE\s*검사)', _pfre.I)
+    _PF_HAS_ACTION = _pfre.compile(r'(?:교체|replace|용접|weld|보수|repair|도장|coating|paint|plug|설치|install|제작|fabricat|grinding|expanding|retubing|lining)', _pfre.I)
+    
+    filtered = []
+    for ev in events:
+        d = (ev.action_detail or "").strip()
+        a = (ev.action_type or "").strip()
+        r = (ev.recommendation or "").strip()
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Skip too-short noise (< 10 chars, no action type)
+        if len(d) < 10 and not a:
+            continue
+        # Skip good-condition-only
+        if d and _PF_GOOD_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Skip inspection-only
+        if d and _PF_INSP_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Skip recommendation-only (no detail, no action)
+        if not d and not a and r:
+            continue
+        
+        filtered.append(ev)
+    events = filtered if filtered else events[:1] if events else events
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    # ===== End Cycle2 Patch =====
+    # ===== Cycle2 Patch: Post-filter events =====
+    import re as _pfre
+    _PF_GOOD_ONLY = _pfre.compile(r'(?:양호|이상\s*없|특이사항\s*없|결함\s*없|no\s*defect)', _pfre.I)
+    _PF_INSP_ONLY = _pfre.compile(r'(?:두께\s*측정|thickness\s*measur|UT\s*검사|IRIS\s*검사|screen\s*대상|미\s*개방|외부\s*두께측정|초음파|NDE\s*검사)', _pfre.I)
+    _PF_HAS_ACTION = _pfre.compile(r'(?:교체|replace|용접|weld|보수|repair|도장|coating|paint|plug|설치|install|제작|fabricat|grinding|expanding|retubing|lining)', _pfre.I)
+    
+    filtered = []
+    for ev in events:
+        d = (ev.action_detail or "").strip()
+        a = (ev.action_type or "").strip()
+        r = (ev.recommendation or "").strip()
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Skip too-short noise (< 10 chars, no action type)
+        if len(d) < 10 and not a:
+            continue
+        # Skip good-condition-only
+        if d and _PF_GOOD_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Skip inspection-only
+        if d and _PF_INSP_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Skip recommendation-only (no detail, no action)
+        if not d and not a and r:
+            continue
+        
+        filtered.append(ev)
+    events = filtered if filtered else events[:1] if events else events
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    # ===== End Cycle2 Patch =====
+    # ===== Cycle2 Patch: Post-filter events =====
+    import re as _pfre
+    _PF_GOOD_ONLY = _pfre.compile(r'(?:양호|이상\s*없|특이사항\s*없|결함\s*없|no\s*defect)', _pfre.I)
+    _PF_INSP_ONLY = _pfre.compile(r'(?:두께\s*측정|thickness\s*measur|UT\s*검사|IRIS\s*검사|screen\s*대상|미\s*개방|외부\s*두께측정|초음파|NDE\s*검사)', _pfre.I)
+    _PF_HAS_ACTION = _pfre.compile(r'(?:교체|replace|용접|weld|보수|repair|도장|coating|paint|plug|설치|install|제작|fabricat|grinding|expanding|retubing|lining)', _pfre.I)
+    
+    filtered = []
+    for ev in events:
+        d = (ev.action_detail or "").strip()
+        a = (ev.action_type or "").strip()
+        r = (ev.recommendation or "").strip()
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Skip too-short noise (< 10 chars, no action type)
+        if len(d) < 10 and not a:
+            continue
+        # Skip good-condition-only
+        if d and _PF_GOOD_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Skip inspection-only
+        if d and _PF_INSP_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Skip recommendation-only (no detail, no action)
+        if not d and not a and r:
+            continue
+        
+        filtered.append(ev)
+    events = filtered if filtered else events[:1] if events else events
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    # ===== End Cycle2 Patch =====
+    # ===== Cycle2 Patch: Post-filter events =====
+    import re as _pfre
+    _PF_GOOD_ONLY = _pfre.compile(r'(?:양호|이상\s*없|특이사항\s*없|결함\s*없|no\s*defect)', _pfre.I)
+    _PF_INSP_ONLY = _pfre.compile(r'(?:두께\s*측정|thickness\s*measur|UT\s*검사|IRIS\s*검사|screen\s*대상|미\s*개방|외부\s*두께측정|초음파|NDE\s*검사)', _pfre.I)
+    _PF_HAS_ACTION = _pfre.compile(r'(?:교체|replace|용접|weld|보수|repair|도장|coating|paint|plug|설치|install|제작|fabricat|grinding|expanding|retubing|lining)', _pfre.I)
+    
+    filtered = []
+    for ev in events:
+        d = (ev.action_detail or "").strip()
+        a = (ev.action_type or "").strip()
+        r = (ev.recommendation or "").strip()
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Skip too-short noise (< 10 chars, no action type)
+        if len(d) < 10 and not a:
+            continue
+        # Skip good-condition-only
+        if d and _PF_GOOD_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Skip inspection-only
+        if d and _PF_INSP_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Skip recommendation-only (no detail, no action)
+        if not d and not a and r:
+            continue
+        
+        filtered.append(ev)
+    events = filtered if filtered else events[:1] if events else events
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    # ===== End Cycle2 Patch =====
+    # ===== Cycle2 Patch: Post-filter events =====
+    import re as _pfre
+    _PF_GOOD_ONLY = _pfre.compile(r'(?:양호|이상\s*없|특이사항\s*없|결함\s*없|no\s*defect)', _pfre.I)
+    _PF_INSP_ONLY = _pfre.compile(r'(?:두께\s*측정|thickness\s*measur|UT\s*검사|IRIS\s*검사|screen\s*대상|미\s*개방|외부\s*두께측정|초음파|NDE\s*검사)', _pfre.I)
+    _PF_HAS_ACTION = _pfre.compile(r'(?:교체|replace|용접|weld|보수|repair|도장|coating|paint|plug|설치|install|제작|fabricat|grinding|expanding|retubing|lining)', _pfre.I)
+    
+    filtered = []
+    for ev in events:
+        d = (ev.action_detail or "").strip()
+        a = (ev.action_type or "").strip()
+        r = (ev.recommendation or "").strip()
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Skip too-short noise (< 10 chars, no action type)
+        if len(d) < 10 and not a:
+            continue
+        # Skip good-condition-only
+        if d and _PF_GOOD_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Skip inspection-only
+        if d and _PF_INSP_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Skip recommendation-only (no detail, no action)
+        if not d and not a and r:
+            continue
+        
+        filtered.append(ev)
+    events = filtered if filtered else events[:1] if events else events
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    # ===== End Cycle2 Patch =====
+    # ===== Cycle2 Patch: Post-filter events =====
+    import re as _pfre
+    _PF_GOOD_ONLY = _pfre.compile(r'(?:양호|이상\s*없|특이사항\s*없|결함\s*없|no\s*defect)', _pfre.I)
+    _PF_INSP_ONLY = _pfre.compile(r'(?:두께\s*측정|thickness\s*measur|UT\s*검사|IRIS\s*검사|screen\s*대상|미\s*개방|외부\s*두께측정|초음파|NDE\s*검사)', _pfre.I)
+    _PF_HAS_ACTION = _pfre.compile(r'(?:교체|replace|용접|weld|보수|repair|도장|coating|paint|plug|설치|install|제작|fabricat|grinding|expanding|retubing|lining)', _pfre.I)
+    
+    filtered = []
+    for ev in events:
+        d = (ev.action_detail or "").strip()
+        a = (ev.action_type or "").strip()
+        r = (ev.recommendation or "").strip()
+        
+        # Cycle4: Skip historical-only references
+        _PF_HIST = _pfre.compile(r'(?:전회\s*(?:TA|검사)|이전\s*(?:TA|검사)|지난\s*(?:TA|검사)|기존\s*검사)', _pfre.I)
+        _PF_CURRENT = _pfre.compile(r'(?:금번|금회|이번|실시\s*(?:함|하였)|수행|진행)', _pfre.I)
+        if d and _PF_HIST.search(d) and not _PF_CURRENT.search(d) and not a:
+            continue
+        
+        # Skip too-short noise (< 10 chars, no action type)
+        if len(d) < 10 and not a:
+            continue
+        # Skip good-condition-only
+        if d and _PF_GOOD_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Skip inspection-only
+        if d and _PF_INSP_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        # Cycle10: Final noise cleanup
+        _PF_PHOTO_ONLY = _pfre.compile(r'^\s*(?:사진\s*\d|Photo\s*\d|\(사진)', _pfre.I)
+        _PF_BOLT_ASSEM = _pfre.compile(r'^(?:Header\s*Cover\s*(?:Bolt|조립)|Bolt\s*교체\s*후\s*(?:조립|수압))', _pfre.I)
+        if d and _PF_PHOTO_ONLY.match(d.strip()) and not a:
+            continue
+        if d and len(d) < 40 and _PF_BOLT_ASSEM.match(d.strip()) and not a:
+            continue
+        
+        # Cycle9: Skip pressure-test-only events
+        _PF_TEST_ONLY = _pfre.compile(r'(?:수압\s*시험|기밀\s*시험|hydro\s*test|leak\s*test|pressure\s*test)', _pfre.I)
+        if d and _PF_TEST_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle8: Skip non-opening external inspection only
+        _PF_NO_OPEN = _pfre.compile(r'(?:미\s*개방|개방\s*하지|비개방|외부\s*(?:검사|점검)\s*(?:만|만\s*실시|실시))', _pfre.I)
+        if d and _PF_NO_OPEN.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle7: Skip cleaning-only events (no actual repair)
+        _PF_CLEAN_ONLY = _pfre.compile(r'(?:cleaning|청소|세척|sludge\s*제거|scale\s*제거|hydrojetting|lance\s*clean)', _pfre.I)
+        if d and _PF_CLEAN_ONLY.search(d) and not _PF_HAS_ACTION.search(d) and not a:
+            continue
+        
+        # Cycle6: Skip N/A and meaningless short entries
+        if d and _pfre.match(r'^(?:N/?A|없음|해당없음|해당\s*없음|특이사항\s*없음|양호함|\d+[.)\s]*$|-+$)$', d.strip(), _pfre.I):
+            continue
+        
+        # Cycle5: Skip section header noise
+        if d and len(d) < 25 and _pfre.match(r'^\d*[.)\s]*(초기검사|상세검사|보수|정비|두께측정|결론|목적|검사결과)', d):
+            continue
+        
+        # Skip recommendation-only (no detail, no action)
+        if not d and not a and r:
+            continue
+        
+        filtered.append(ev)
+    events = filtered if filtered else events[:1] if events else events
+    
+    # ===== Cycle3 Patch: Deduplicate similar events =====
+    if len(events) > 1:
+        deduped = []
+        seen = set()
+        for ev in events:
+            dk = (ev.action_detail or "")[:50].strip().lower()
+            key = (ev.equipment_no, ev.report_year, dk)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(ev)
+        events = deduped if deduped else events
+    # ===== End Cycle3 Patch =====
+    # ===== End Cycle2 Patch =====
     return sorted(events, key=lambda e: e.report_year)
